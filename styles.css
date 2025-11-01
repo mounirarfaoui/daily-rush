@@ -868,6 +868,65 @@ header h1 {
     color: #999;
 }
 
+/* Login Required Message */
+.login-required-message {
+    display: none;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    border-radius: 15px;
+    padding: 40px 20px;
+    margin: 30px 0;
+    text-align: center;
+    animation: fadeIn 0.5s ease-in;
+}
+
+.login-required-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.login-required-content svg {
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.login-required-content h3 {
+    color: #667eea;
+    font-size: 1.5em;
+    margin: 0;
+}
+
+.login-required-content p {
+    color: #666;
+    font-size: 1em;
+    margin: 0;
+    max-width: 400px;
+}
+
+.btn-login-required {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 30px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.btn-login-required:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-login-required:active {
+    transform: translateY(0);
+}
+
 /* Login Modal */
 .login-modal {
     position: fixed;
@@ -1299,6 +1358,24 @@ header h1 {
 
     .empty-state p {
         font-size: 0.95em;
+    }
+
+    .login-required-message {
+        padding: 30px 15px;
+        margin: 20px 0;
+    }
+
+    .login-required-content h3 {
+        font-size: 1.3em;
+    }
+
+    .login-required-content p {
+        font-size: 0.9em;
+    }
+
+    .btn-login-required {
+        width: 100%;
+        padding: 10px;
     }
 }
 

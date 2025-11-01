@@ -26,20 +26,26 @@ class TaskManager {
         };
         // Load user first, then load their tasks
         this.loadUser();
-        // Load tasks after user is loaded (so we know which user's tasks to load)
-        this.loadTasks();
-        this.loadPoints();
+        
+        // If no user is logged in, show login modal immediately
+        if (!this.user) {
+            this.showLoginModal();
+            // Disable task functionality until logged in
+            this.disableTaskFunctionality();
+        } else {
+            // Load tasks after user is loaded (so we know which user's tasks to load)
+            this.loadTasks();
+            this.loadPoints();
+            this.renderAllPages();
+            this.updateAllStats();
+            this.updatePointsDisplay();
+        }
+        
         this.initializeGoogleSignIn();
         this.initializeEventListeners();
         
-        // Always render pages - login is optional
-        this.renderAllPages();
-        this.updateAllStats();
-        this.updatePointsDisplay();
-        
         // Update user display (will show login button if not logged in)
         this.updateUserDisplay();
-        this.hideLoginModal(); // Hide modal by default
     }
 
     initializeGoogleSignIn() {
@@ -238,14 +244,15 @@ class TaskManager {
 
             this.saveUser();
             
-            // If switching users, load the new user's tasks
-            if (previousUserId !== newUserId) {
-                this.loadTasks();
-                this.loadPoints();
-                this.renderAllPages();
-                this.updateAllStats();
-                this.updatePointsDisplay();
-            }
+            // Load user's tasks (either new user or switching users)
+            this.loadTasks();
+            this.loadPoints();
+            this.renderAllPages();
+            this.updateAllStats();
+            this.updatePointsDisplay();
+            
+            // Enable task functionality now that user is logged in
+            this.enableTaskFunctionality();
             
             this.updateUserDisplay();
             this.hideLoginModal();
@@ -298,6 +305,21 @@ class TaskManager {
             logoutBtn.style.display = 'none';
             if (loginBtn) loginBtn.style.display = 'block';
         }
+        
+        // Update close button visibility
+        this.updateCloseButtonVisibility();
+    }
+
+    updateCloseButtonVisibility() {
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        if (closeModalBtn) {
+            // Hide close button if user is not logged in (login is required)
+            if (!this.user) {
+                closeModalBtn.style.display = 'none';
+            } else {
+                closeModalBtn.style.display = 'block';
+            }
+        }
     }
 
     showLoginModal() {
@@ -318,15 +340,130 @@ class TaskManager {
         this.user = null;
         this.saveUser();
         
-        // Load guest tasks (or empty if no guest tasks exist)
-        this.loadTasks();
-        this.loadPoints();
+        // Clear tasks and points display
+        this.tasks = [];
+        this.totalPoints = 0;
+        
+        // Disable task functionality
+        this.disableTaskFunctionality();
         
         this.updateUserDisplay();
         this.renderAllPages();
         this.updateAllStats();
         this.updatePointsDisplay();
         this.showLoginModal();
+    }
+
+    disableTaskFunctionality() {
+        // Disable task input and buttons
+        const taskInput = document.getElementById('taskInput');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const difficultySelect = document.getElementById('taskDifficulty');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+        
+        if (taskInput) {
+            taskInput.disabled = true;
+            taskInput.placeholder = 'Please login to add tasks';
+        }
+        if (addTaskBtn) {
+            addTaskBtn.disabled = true;
+            addTaskBtn.style.opacity = '0.5';
+            addTaskBtn.style.cursor = 'not-allowed';
+        }
+        if (difficultySelect) {
+            difficultySelect.disabled = true;
+        }
+        if (clearAllBtn) {
+            clearAllBtn.disabled = true;
+            clearAllBtn.style.opacity = '0.5';
+        }
+        if (exportBtn) {
+            exportBtn.disabled = true;
+            exportBtn.style.opacity = '0.5';
+        }
+        if (clearCompletedBtn) {
+            clearCompletedBtn.disabled = true;
+            clearCompletedBtn.style.opacity = '0.5';
+        }
+        
+        // Show login required message
+        this.showLoginRequiredMessage();
+    }
+
+    enableTaskFunctionality() {
+        // Enable task input and buttons
+        const taskInput = document.getElementById('taskInput');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const difficultySelect = document.getElementById('taskDifficulty');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+        
+        if (taskInput) {
+            taskInput.disabled = false;
+            taskInput.placeholder = 'Add a new task...';
+        }
+        if (addTaskBtn) {
+            addTaskBtn.disabled = false;
+            addTaskBtn.style.opacity = '1';
+            addTaskBtn.style.cursor = 'pointer';
+        }
+        if (difficultySelect) {
+            difficultySelect.disabled = false;
+        }
+        if (clearAllBtn) {
+            clearAllBtn.disabled = false;
+            clearAllBtn.style.opacity = '1';
+        }
+        if (exportBtn) {
+            exportBtn.disabled = false;
+            exportBtn.style.opacity = '1';
+        }
+        if (clearCompletedBtn) {
+            clearCompletedBtn.disabled = false;
+            clearCompletedBtn.style.opacity = '1';
+        }
+        
+        // Hide login required message
+        this.hideLoginRequiredMessage();
+    }
+
+    showLoginRequiredMessage() {
+        // Check if message already exists
+        let message = document.getElementById('loginRequiredMessage');
+        if (!message) {
+            message = document.createElement('div');
+            message.id = 'loginRequiredMessage';
+            message.className = 'login-required-message';
+            message.innerHTML = `
+                <div class="login-required-content">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <h3>Login Required</h3>
+                    <p>Please sign in with Google to start managing your tasks.</p>
+                    <button class="btn-login-required" onclick="taskManager.showLoginModal()">Sign In with Google</button>
+                </div>
+            `;
+            
+            // Insert after the task input section
+            const container = document.querySelector('.container');
+            const taskInputSection = document.querySelector('.task-input-section');
+            if (container && taskInputSection) {
+                container.insertBefore(message, taskInputSection.nextSibling);
+            }
+        }
+        message.style.display = 'block';
+    }
+
+    hideLoginRequiredMessage() {
+        const message = document.getElementById('loginRequiredMessage');
+        if (message) {
+            message.style.display = 'none';
+        }
     }
 
     saveUser() {
@@ -489,7 +626,7 @@ class TaskManager {
         // Add task
         addTaskBtn.addEventListener('click', () => this.addTask());
         taskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !taskInput.disabled) {
                 this.addTask();
             }
         });
@@ -527,13 +664,31 @@ class TaskManager {
         });
 
         // Clear all tasks
-        clearAllBtn.addEventListener('click', () => this.clearAllTasks());
+        clearAllBtn.addEventListener('click', () => {
+            if (this.user) {
+                this.clearAllTasks();
+            } else {
+                this.showLoginModal();
+            }
+        });
 
         // Export tasks
-        exportBtn.addEventListener('click', () => this.exportTasks());
+        exportBtn.addEventListener('click', () => {
+            if (this.user) {
+                this.exportTasks();
+            } else {
+                this.showLoginModal();
+            }
+        });
 
         // Clear completed tasks
-        clearCompletedBtn.addEventListener('click', () => this.clearCompletedTasks());
+        clearCompletedBtn.addEventListener('click', () => {
+            if (this.user) {
+                this.clearCompletedTasks();
+            } else {
+                this.showLoginModal();
+            }
+        });
 
         // Logout
         logoutBtn.addEventListener('click', () => {
@@ -550,19 +705,26 @@ class TaskManager {
             });
         }
 
-        // Close modal button
+        // Close modal button (only allow if user is logged in)
         const closeModalBtn = document.getElementById('closeModalBtn');
         if (closeModalBtn) {
             closeModalBtn.addEventListener('click', () => {
-                this.hideLoginModal();
+                // Only allow closing if user is logged in
+                if (this.user) {
+                    this.hideLoginModal();
+                }
             });
+            
+            // Hide close button if login is required
+            this.updateCloseButtonVisibility();
         }
 
-        // Close modal when clicking outside
+        // Close modal when clicking outside (only if user is logged in)
         const loginModal = document.getElementById('loginModal');
         if (loginModal) {
             loginModal.addEventListener('click', (e) => {
-                if (e.target === loginModal) {
+                // Only allow closing if user is logged in
+                if (e.target === loginModal && this.user) {
                     this.hideLoginModal();
                 }
             });
@@ -658,6 +820,12 @@ class TaskManager {
     }
 
     addTask() {
+        // Check if user is logged in
+        if (!this.user) {
+            this.showLoginModal();
+            return;
+        }
+        
         const taskInput = document.getElementById('taskInput');
         const difficultySelect = document.getElementById('taskDifficulty');
         const taskText = taskInput.value.trim();
@@ -686,6 +854,12 @@ class TaskManager {
     }
 
     toggleTask(id) {
+        // Check if user is logged in
+        if (!this.user) {
+            this.showLoginModal();
+            return;
+        }
+        
         const task = this.tasks.find(t => t.id === id);
         if (task) {
             const wasCompleted = task.completed;
@@ -721,6 +895,12 @@ class TaskManager {
     }
 
     deleteTask(id) {
+        // Check if user is logged in
+        if (!this.user) {
+            this.showLoginModal();
+            return;
+        }
+        
         const task = this.tasks.find(t => t.id === id);
         if (task && task.completed && task.pointsEarned) {
             // Remove points if task was completed
@@ -808,6 +988,7 @@ class TaskManager {
                 type="checkbox" 
                 class="task-checkbox" 
                 ${task.completed ? 'checked' : ''}
+                ${this.user ? '' : 'disabled'}
                 onchange="taskManager.toggleTask(${task.id})"
             >
             <span class="task-text">
@@ -815,7 +996,7 @@ class TaskManager {
                 <span class="task-difficulty ${difficulty}">${difficultyLabel}</span>
                 ${points ? `<span style="color: #667eea; font-weight: 600;">${points}</span>` : ''}
             </span>
-            <button class="task-delete" onclick="taskManager.deleteTask(${task.id})" title="Delete task">
+            <button class="task-delete" ${this.user ? '' : 'disabled'} onclick="taskManager.deleteTask(${task.id})" title="Delete task">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
