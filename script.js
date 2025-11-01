@@ -24,7 +24,9 @@ class TaskManager {
             hard: 50,
             expert: 100
         };
+        // Load user first, then load their tasks
         this.loadUser();
+        // Load tasks after user is loaded (so we know which user's tasks to load)
         this.loadTasks();
         this.loadPoints();
         this.initializeGoogleSignIn();
@@ -222,6 +224,9 @@ class TaskManager {
             // Decode the JWT token to get user info
             const payload = JSON.parse(atob(response.credential.split('.')[1]));
             
+            const previousUserId = this.user ? this.user.sub : null;
+            const newUserId = payload.sub;
+            
             this.user = {
                 name: payload.name,
                 email: payload.email,
@@ -232,6 +237,16 @@ class TaskManager {
             };
 
             this.saveUser();
+            
+            // If switching users, load the new user's tasks
+            if (previousUserId !== newUserId) {
+                this.loadTasks();
+                this.loadPoints();
+                this.renderAllPages();
+                this.updateAllStats();
+                this.updatePointsDisplay();
+            }
+            
             this.updateUserDisplay();
             this.hideLoginModal();
             
@@ -296,20 +311,22 @@ class TaskManager {
     }
 
     logout() {
+        // Save current user's data before logging out
+        this.saveTasks();
+        this.savePoints();
+        
         this.user = null;
         this.saveUser();
-        this.updateUserDisplay();
-        this.showLoginModal();
         
-        // Clear all tasks and points on logout (optional - you may want to keep them)
-        // Uncomment the lines below if you want to clear data on logout
-        // this.tasks = [];
-        // this.totalPoints = 0;
-        // this.saveTasks();
-        // this.savePoints();
-        // this.renderAllPages();
-        // this.updateAllStats();
-        // this.updatePointsDisplay();
+        // Load guest tasks (or empty if no guest tasks exist)
+        this.loadTasks();
+        this.loadPoints();
+        
+        this.updateUserDisplay();
+        this.renderAllPages();
+        this.updateAllStats();
+        this.updatePointsDisplay();
+        this.showLoginModal();
     }
 
     saveUser() {
@@ -986,11 +1003,15 @@ class TaskManager {
     }
 
     saveTasks() {
-        localStorage.setItem('dailyRushTasks', JSON.stringify(this.tasks));
+        // Store tasks per user if logged in, or use default key if not logged in
+        const storageKey = this.user ? `dailyRushTasks_${this.user.sub}` : 'dailyRushTasks_guest';
+        localStorage.setItem(storageKey, JSON.stringify(this.tasks));
     }
 
     loadTasks() {
-        const saved = localStorage.getItem('dailyRushTasks');
+        // Load tasks for current user, or guest tasks if not logged in
+        const storageKey = this.user ? `dailyRushTasks_${this.user.sub}` : 'dailyRushTasks_guest';
+        const saved = localStorage.getItem(storageKey);
         if (saved) {
             try {
                 this.tasks = JSON.parse(saved);
@@ -998,15 +1019,21 @@ class TaskManager {
                 console.error('Error loading tasks:', e);
                 this.tasks = [];
             }
+        } else {
+            this.tasks = [];
         }
     }
 
     savePoints() {
-        localStorage.setItem('dailyRushPoints', this.totalPoints.toString());
+        // Store points per user if logged in, or use default key if not logged in
+        const storageKey = this.user ? `dailyRushPoints_${this.user.sub}` : 'dailyRushPoints_guest';
+        localStorage.setItem(storageKey, this.totalPoints.toString());
     }
 
     loadPoints() {
-        const saved = localStorage.getItem('dailyRushPoints');
+        // Load points for current user, or guest points if not logged in
+        const storageKey = this.user ? `dailyRushPoints_${this.user.sub}` : 'dailyRushPoints_guest';
+        const saved = localStorage.getItem(storageKey);
         if (saved) {
             this.totalPoints = parseInt(saved, 10) || 0;
         } else {
