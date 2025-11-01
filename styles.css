@@ -955,68 +955,414 @@ header h1 {
 }
 
 /* Responsive design */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+    }
+
     .icon-bar {
-        padding: 12px 15px;
+        padding: 10px 12px;
     }
 
     .icon-bar-content {
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 8px;
+        justify-content: space-between;
+    }
+
+    .icon-bar-left {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .logo-icon {
+        display: none;
     }
 
     .app-name {
-        font-size: 1.1em;
+        font-size: 1em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    .icon-bar-right {
-        flex-wrap: wrap;
+    .points-display {
+        padding: 5px 10px;
+        margin-left: 8px;
+        font-size: 0.85em;
     }
 
-    .container {
-        padding: 20px;
-        margin: 20px;
+    .points-display svg {
+        width: 16px;
+        height: 16px;
     }
 
-    header h1 {
-        font-size: 2em;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .input-wrapper {
-        flex-direction: column;
-    }
-
-    .btn-add {
-        width: 100%;
-        justify-content: center;
+    .points-label {
+        display: none;
     }
 
     .icon-bar-center {
         order: 3;
         width: 100%;
-        justify-content: center;
-        margin-top: 10px;
+        justify-content: space-around;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(102, 126, 234, 0.1);
+    }
+
+    .nav-btn {
+        padding: 8px 12px;
+        font-size: 0.85em;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .nav-btn svg {
+        width: 16px;
+        height: 16px;
     }
 
     .nav-btn span {
+        font-size: 0.75em;
+        display: block;
+    }
+
+    .icon-bar-right {
+        gap: 6px;
+    }
+
+    .icon-btn {
+        padding: 6px 10px;
+        min-width: 36px;
+        min-height: 36px;
+    }
+
+    .icon-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .user-profile {
+        padding: 4px 8px;
+        margin-right: 4px;
+    }
+
+    .user-avatar {
+        width: 28px;
+        height: 28px;
+    }
+
+    .user-name {
+        font-size: 0.8em;
         display: none;
+    }
+
+    .edit-profile-btn {
+        width: 20px;
+        height: 20px;
+    }
+
+    .edit-profile-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .container {
+        padding: 15px;
+        margin: 10px;
+        border-radius: 15px;
+    }
+
+    header {
+        margin-bottom: 20px;
+    }
+
+    header h1 {
+        font-size: 1.8em;
+        gap: 8px;
+    }
+
+    .header-icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .subtitle {
+        font-size: 0.85em;
+    }
+
+    .task-input-section {
+        margin-bottom: 20px;
+    }
+
+    .input-wrapper {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .input-icon {
+        left: 12px;
+    }
+
+    #taskInput {
+        padding: 12px 12px 12px 40px;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    .difficulty-select {
+        width: 100%;
+        padding: 12px 15px;
+        font-size: 0.95em;
+    }
+
+    .btn-add {
+        width: 100%;
+        padding: 12px 20px;
+        justify-content: center;
+        font-size: 0.95em;
+    }
+
+    .page-header h2 {
+        font-size: 1.6em;
+    }
+
+    .page-description {
+        font-size: 0.85em;
     }
 
     .page-features {
         flex-direction: column;
+        gap: 10px;
     }
 
     .search-box {
         width: 100%;
     }
 
+    .search-input {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    .sort-box {
+        width: 100%;
+    }
+
+    .sort-select {
+        width: 100%;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+
     .task-stats {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
     }
 
     .stat-card {
+        flex: 1;
+        min-width: calc(50% - 5px);
+        padding: 12px;
+    }
+
+    .stat-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .stat-value {
+        font-size: 1.5em;
+    }
+
+    .stat-label {
+        font-size: 0.8em;
+    }
+
+    .motivation-card,
+    .achievement-card {
+        padding: 15px;
+        margin-top: 10px;
+    }
+
+    .motivation-card svg,
+    .achievement-card svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .clear-completed-btn {
         width: 100%;
+        padding: 10px;
+        font-size: 0.9em;
+        margin-top: 10px;
+    }
+
+    .task-item {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .task-text {
+        font-size: 0.95em;
+    }
+
+    .task-difficulty {
+        font-size: 0.7em;
+        padding: 3px 8px;
+        margin-left: 6px;
+    }
+
+    .task-delete {
+        padding: 6px 10px;
+        font-size: 0.85em;
+        min-width: 60px;
+    }
+
+    .login-modal {
+        padding: 10px;
+    }
+
+    .login-content {
+        width: 95%;
+        max-width: 95%;
+        padding: 20px 15px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .login-header h2 {
+        font-size: 1.5em;
+    }
+
+    .login-header p {
+        font-size: 0.9em;
+    }
+
+    .edit-profile-form {
+        margin-top: 15px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group input {
+        padding: 10px;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    .profile-preview {
+        padding: 15px;
+    }
+
+    .user-avatar-large {
+        width: 60px;
+        height: 60px;
+    }
+
+    .user-name-large {
+        font-size: 1em;
+    }
+
+    .edit-profile-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .btn-save-profile,
+    .btn-reset-profile,
+    .btn-cancel-profile {
+        width: 100%;
+        padding: 12px;
+    }
+
+    .points-notification {
+        top: 70px;
+        right: 10px;
+        left: 10px;
+        padding: 12px 18px;
+        font-size: 0.9em;
+    }
+
+    .points-notification svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .empty-state {
+        padding: 30px 15px;
+    }
+
+    .empty-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .empty-state p {
+        font-size: 0.95em;
+    }
+}
+
+@media (max-width: 480px) {
+    .icon-bar {
+        padding: 8px 10px;
+    }
+
+    .app-name {
+        font-size: 0.9em;
+    }
+
+    .nav-btn {
+        padding: 6px 8px;
+    }
+
+    .nav-btn span {
+        font-size: 0.7em;
+    }
+
+    .container {
+        padding: 12px;
+        margin: 5px;
+    }
+
+    header h1 {
+        font-size: 1.5em;
+    }
+
+    .stat-card {
+        min-width: 100%;
+    }
+
+    .task-stats {
+        flex-direction: column;
+    }
+}
+
+/* Landscape orientation for phones */
+@media (max-width: 768px) and (orientation: landscape) {
+    .icon-bar-center {
+        order: 0;
+        width: auto;
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+        margin-left: auto;
+        margin-right: 10px;
+    }
+
+    .icon-bar-content {
+        flex-wrap: nowrap;
+    }
+
+    .nav-btn {
+        padding: 6px 10px;
+    }
+
+    .nav-btn span {
+        display: none;
+    }
+
+    .container {
+        margin: 10px auto;
+        max-width: 600px;
     }
 }
