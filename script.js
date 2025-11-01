@@ -7,7 +7,7 @@ class TaskManager {
         this.currentPage = 'all';
         this.audioContext = null;
         this.user = null;
-        this.googleClientId = 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com'; // Replace with your actual Google OAuth Client ID
+        this.googleClientId = '919121855133-ut8k73gu14j7rd6u967bavtr0jlc7rl1.apps.googleusercontent.com'; // Replace with your actual Google OAuth Client ID
         this.searchQueries = {
             all: '',
             active: '',
