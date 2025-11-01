@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Rush - Task Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <!-- Login Modal -->
+    <div class="login-modal hidden" id="loginModal">
+        <div class="login-content">
+            <button class="close-modal" id="closeModalBtn" title="Close">×</button>
+            <div class="login-header">
+                <h2>Sign in with Google</h2>
+                <p>Optional: Sign in to sync your tasks across devices</p>
+            </div>
+            <div id="googleSignInButton" class="google-signin-btn"></div>
+            <p style="margin-top: 20px; color: #666; font-size: 0.9em;">
+                You can continue using the app without signing in
+            </p>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="login-modal hidden" id="editProfileModal">
+        <div class="login-content">
+            <button class="close-modal" id="closeEditModalBtn" title="Close">×</button>
+            <div class="login-header">
+                <h2>Edit Profile</h2>
+                <p>Customize your display name and photo</p>
+            </div>
+            <div class="edit-profile-form">
+                <div class="form-group">
+                    <label for="editUserName">Display Name</label>
+                    <input type="text" id="editUserName" placeholder="Enter your name" maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label for="editUserPhoto">Photo URL</label>
+                    <input type="url" id="editUserPhoto" placeholder="Enter image URL (e.g., https://...)" maxlength="500">
+                    <small>Or leave empty to use your Google photo</small>
+                </div>
+                <div class="form-group">
+                    <label>Preview</label>
+                    <div class="profile-preview">
+                        <img id="profilePreview" src="" alt="Preview" class="user-avatar-large">
+                        <span id="namePreview" class="user-name-large"></span>
+                    </div>
+                </div>
+                <div class="edit-profile-actions">
+                    <button class="btn-save-profile" id="saveProfileBtn">Save Changes</button>
+                    <button class="btn-reset-profile" id="resetProfileBtn">Reset to Google</button>
+                    <button class="btn-cancel-profile" id="cancelProfileBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Icon Bar -->
+    <nav class="icon-bar">
+        <div class="icon-bar-content">
+            <div class="icon-bar-left">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                </div>
+                <span class="app-name">Daily Rush</span>
+                <div class="points-display">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <span class="points-value" id="totalPoints">0</span>
+                    <span class="points-label">Points</span>
+                </div>
+            </div>
+            <div class="icon-bar-center">
+                <button class="nav-btn active" data-page="all" id="navAll">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                    <span>All Tasks</span>
+                </button>
+                <button class="nav-btn" data-page="active" id="navActive">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Active</span>
+                </button>
+                <button class="nav-btn" data-page="completed" id="navCompleted">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Completed</span>
+                </button>
+            </div>
+            <div class="icon-bar-right">
+                <div class="user-profile" id="userProfile" style="display: none;">
+                    <img id="userAvatar" src="" alt="User" class="user-avatar">
+                    <span id="userName" class="user-name"></span>
+                    <button class="edit-profile-btn" id="editProfileBtn" title="Edit Profile">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <button class="icon-btn" id="loginBtn" title="Sign in with Google" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="logoutBtn" title="Logout" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="clearAllBtn" title="Clear All Tasks">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="exportBtn" title="Export Tasks">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="header-icon">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Daily Rush
+            </h1>
+            <p class="subtitle">Your daily task manager</p>
+        </header>
+
+        <div class="task-input-section">
+            <div class="input-wrapper">
+                <div class="input-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </div>
+                <input 
+                    type="text" 
+                    id="taskInput" 
+                    placeholder="Add a new task..." 
+                    maxlength="200"
+                >
+                <select id="taskDifficulty" class="difficulty-select" title="Select task difficulty">
+                    <option value="easy">Easy (10 pts)</option>
+                    <option value="medium" selected>Medium (25 pts)</option>
+                    <option value="hard">Hard (50 pts)</option>
+                    <option value="expert">Expert (100 pts)</option>
+                </select>
+                <button id="addTaskBtn" class="btn-add">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Task
+                </button>
+            </div>
+        </div>
+
+        <!-- All Tasks Page -->
+        <div class="page-view active" id="pageAll" data-page="all">
+            <div class="page-header">
+                <h2>All Tasks</h2>
+                <p class="page-description">View and manage all your tasks</p>
+            </div>
+            <div class="page-features">
+                <div class="search-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="searchAll" placeholder="Search all tasks..." class="search-input">
+                </div>
+                <div class="sort-box">
+                    <label>Sort by:</label>
+                    <select id="sortAll" class="sort-select">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="alphabetical">A-Z</option>
+                        <option value="reverse">Z-A</option>
+                    </select>
+                </div>
+            </div>
+            <div class="task-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="allTasksCount">0</span>
+                        <span class="stat-label">Total Tasks</span>
+                    </div>
+                </div>
+                <div class="stat-card points-card">
+                    <div class="stat-icon points-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="pagePointsDisplay">0</span>
+                        <span class="stat-label">Total Points</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon active">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="allActiveCount">0</span>
+                        <span class="stat-label">Active</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon completed">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="allCompletedCount">0</span>
+                        <span class="stat-label">Completed</span>
+                    </div>
+                </div>
+            </div>
+            <ul id="taskListAll" class="task-list">
+                <!-- Tasks will be dynamically added here -->
+            </ul>
+            <div class="empty-state" id="emptyStateAll">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <p>No tasks yet. Add one above to get started!</p>
+            </div>
+        </div>
+
+        <!-- Active Tasks Page -->
+        <div class="page-view" id="pageActive" data-page="active">
+            <div class="page-header">
+                <h2>Active Tasks</h2>
+                <p class="page-description">Tasks that need your attention</p>
+            </div>
+            <div class="page-features">
+                <div class="search-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="searchActive" placeholder="Search active tasks..." class="search-input">
+                </div>
+                <div class="sort-box">
+                    <label>Sort by:</label>
+                    <select id="sortActive" class="sort-select">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="alphabetical">A-Z</option>
+                        <option value="reverse">Z-A</option>
+                    </select>
+                </div>
+            </div>
+            <div class="task-stats">
+                <div class="stat-card highlight">
+                    <div class="stat-icon active">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="activeTasksCount">0</span>
+                        <span class="stat-label">Active Tasks</span>
+                    </div>
+                </div>
+                <div class="motivation-card">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <p id="motivationText">You're doing great! Keep going!</p>
+                </div>
+            </div>
+            <ul id="taskListActive" class="task-list">
+                <!-- Tasks will be dynamically added here -->
+            </ul>
+            <div class="empty-state" id="emptyStateActive">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <p>No active tasks! 🎉 All done for now.</p>
+            </div>
+        </div>
+
+        <!-- Completed Tasks Page -->
+        <div class="page-view" id="pageCompleted" data-page="completed">
+            <div class="page-header">
+                <h2>Completed Tasks</h2>
+                <p class="page-description">Celebrate your accomplishments</p>
+            </div>
+            <div class="page-features">
+                <div class="search-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="searchCompleted" placeholder="Search completed tasks..." class="search-input">
+                </div>
+                <div class="sort-box">
+                    <label>Sort by:</label>
+                    <select id="sortCompleted" class="sort-select">
+                        <option value="newest">Recently Completed</option>
+                        <option value="oldest">Oldest Completed</option>
+                        <option value="alphabetical">A-Z</option>
+                        <option value="reverse">Z-A</option>
+                    </select>
+                </div>
+            </div>
+            <div class="task-stats">
+                <div class="stat-card highlight completed">
+                    <div class="stat-icon completed">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="completedTasksCount">0</span>
+                        <span class="stat-label">Completed Tasks</span>
+                    </div>
+                </div>
+                <div class="achievement-card">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                        <path d="M4 22h16"></path>
+                        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                    </svg>
+                    <p id="achievementText">Great job completing tasks!</p>
+                    <button class="clear-completed-btn" id="clearCompletedBtn">Clear All Completed</button>
+                </div>
+            </div>
+            <ul id="taskListCompleted" class="task-list">
+                <!-- Tasks will be dynamically added here -->
+            </ul>
+            <div class="empty-state" id="emptyStateCompleted">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <p>No completed tasks yet. Complete a task to see it here!</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

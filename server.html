@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Server - Daily Rush</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .warning {
+            background: #fff5f5;
+            border: 2px solid #ff6b6b;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        code {
+            background: #333;
+            color: #0f0;
+            padding: 10px;
+            display: block;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px 5px;
+            display: inline-block;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Start Local Web Server</h1>
+        
+        <div class="warning">
+            <h2>⚠️ "localhost refused to connect" Error</h2>
+            <p>You need to start a web server first. Choose one option below:</p>
+        </div>
+
+        <h3>Option 1: Double-click START_SERVER.bat</h3>
+        <p>This file will automatically try Python, Node.js, or PHP.</p>
+        
+        <h3>Option 2: Install Python (Recommended)</h3>
+        <ol style="margin: 10px 0 20px 20px; line-height: 2;">
+            <li>Download from: <a href="https://www.python.org/downloads/" target="_blank">python.org</a></li>
+            <li>During installation, check ✅ <strong>"Add Python to PATH"</strong></li>
+            <li>After installation, run this in Command Prompt:</li>
+        </ol>
+        <code>cd "C:\Users\Mounir\OneDrive\Bureau\my apps\daily rush"<br>python -m http.server 8000</code>
+        <p>Then open: <strong>http://localhost:8000</strong></p>
+
+        <h3>Option 3: Use VS Code Live Server</h3>
+        <ol style="margin: 10px 0 20px 20px; line-height: 2;">
+            <li>Install <a href="https://code.visualstudio.com/" target="_blank">Visual Studio Code</a></li>
+            <li>Install "Live Server" extension</li>
+            <li>Right-click index.html → "Open with Live Server"</li>
+        </ol>
+
+        <h3>Option 4: Install Node.js</h3>
+        <ol style="margin: 10px 0 20px 20px; line-height: 2;">
+            <li>Download from: <a href="https://nodejs.org/" target="_blank">nodejs.org</a></li>
+            <li>Run: <code>npx serve</code></li>
+        </ol>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #f0f0f0;">
+            <p><strong>After starting server:</strong></p>
+            <ul style="margin: 10px 0 0 20px; line-height: 2;">
+                <li>Open your browser</li>
+                <li>Go to the URL shown (usually http://localhost:8000)</li>
+                <li>Your app should load!</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,37 @@
+═══════════════════════════════════════════════════════
+    DAILY RUSH - QUICK START GUIDE
+═══════════════════════════════════════════════════════
+
+✅ SERVER IS NOW RUNNING!
+
+📍 Your app is available at:
+   http://localhost:8000
+
+🌐 Open this URL in your browser to use the app.
+
+═══════════════════════════════════════════════════════
+
+📝 TO START SERVER AGAIN (Next Time):
+
+Option 1: Double-click START_SERVER.bat
+
+Option 2: Run this command in Command Prompt:
+   npx serve -p 8000
+
+Option 3: Use VS Code Live Server extension
+
+═══════════════════════════════════════════════════════
+
+⚠️  IMPORTANT NOTES:
+
+• Don't close the Command Prompt window (it's running the server)
+• If you see "localhost refused to connect", the server isn't running
+• Google Sign-In requires http:// (not file://)
+
+═══════════════════════════════════════════════════════
+
+🚀 Your app should now be working at:
+   http://localhost:8000
+
+═══════════════════════════════════════════════════════
+
