@@ -24,28 +24,52 @@ class TaskManager {
             hard: 50,
             expert: 100
         };
-        // Load user first, then load their tasks
-        this.loadUser();
-        
-        // If no user is logged in, show login modal immediately
-        if (!this.user) {
-            this.showLoginModal();
-            // Disable task functionality until logged in
-            this.disableTaskFunctionality();
-        } else {
-            // Load tasks after user is loaded (so we know which user's tasks to load)
-            this.loadTasks();
-            this.loadPoints();
-            this.renderAllPages();
-            this.updateAllStats();
-            this.updatePointsDisplay();
+        // Initialize database first
+        this.initializeDatabase().then(() => {
+            // Load user first, then load their tasks
+            this.loadUser().then(() => {
+                // If no user is logged in, show login modal immediately
+                if (!this.user) {
+                    this.showLoginModal();
+                    // Disable task functionality until logged in
+                    this.disableTaskFunctionality();
+                } else {
+                    // Migrate data from localStorage if needed
+                    this.migrateData();
+                    // Load tasks after user is loaded (so we know which user's tasks to load)
+                    this.loadTasks();
+                    this.loadPoints();
+                    this.renderAllPages();
+                    this.updateAllStats();
+                    this.updatePointsDisplay();
+                }
+                
+                this.initializeGoogleSignIn();
+                this.initializeEventListeners();
+                
+                // Update user display (will show login button if not logged in)
+                this.updateUserDisplay();
+            });
+        });
+    }
+
+    async initializeDatabase() {
+        // Initialize database service
+        const initialized = await databaseService.initialize();
+        if (!initialized) {
+            console.warn('Database not available, using localStorage fallback');
         }
+        return initialized;
+    }
+
+    async migrateData() {
+        if (!this.user || !this.user.sub) return;
         
-        this.initializeGoogleSignIn();
-        this.initializeEventListeners();
-        
-        // Update user display (will show login button if not logged in)
-        this.updateUserDisplay();
+        try {
+            await databaseService.migrateFromLocalStorage(this.user.sub);
+        } catch (error) {
+            console.error('Error during migration:', error);
+        }
     }
 
     initializeGoogleSignIn() {
@@ -225,7 +249,7 @@ class TaskManager {
         `;
     }
 
-    handleCredentialResponse(response) {
+    async handleCredentialResponse(response) {
         try {
             // Decode the JWT token to get user info
             const payload = JSON.parse(atob(response.credential.split('.')[1]));
@@ -242,7 +266,10 @@ class TaskManager {
                 customPicture: null
             };
 
-            this.saveUser();
+            await this.saveUser();
+            
+            // Migrate data from localStorage if needed
+            this.migrateData();
             
             // Load user's tasks (either new user or switching users)
             this.loadTasks();
@@ -332,13 +359,13 @@ class TaskManager {
         loginModal.classList.add('hidden');
     }
 
-    logout() {
+    async logout() {
         // Save current user's data before logging out
-        this.saveTasks();
-        this.savePoints();
+        await this.saveTasks();
+        await this.savePoints();
         
         this.user = null;
-        this.saveUser();
+        await this.saveUser();
         
         // Clear tasks and points display
         this.tasks = [];
@@ -466,15 +493,27 @@ class TaskManager {
         }
     }
 
-    saveUser() {
-        if (this.user) {
+    async saveUser() {
+        if (this.user && this.user.sub) {
+            // Save to database
+            await databaseService.saveUser(this.user.sub, {
+                email: this.user.email,
+                name: this.user.name,
+                picture: this.user.picture,
+                customName: this.user.customName,
+                customPicture: this.user.customPicture,
+                totalPoints: this.totalPoints
+            });
+            
+            // Also save to localStorage as backup
             localStorage.setItem('dailyRushUser', JSON.stringify(this.user));
         } else {
             localStorage.removeItem('dailyRushUser');
         }
     }
 
-    loadUser() {
+    async loadUser() {
+        // Try localStorage first for immediate load
         const saved = localStorage.getItem('dailyRushUser');
         if (saved) {
             try {
@@ -485,6 +524,18 @@ class TaskManager {
                 }
                 if (!this.user.hasOwnProperty('customPicture')) {
                     this.user.customPicture = null;
+                }
+                
+                // Load from database if available (will sync)
+                if (this.user.sub && databaseService.isInitialized) {
+                    const dbUser = await databaseService.loadUser(this.user.sub);
+                    if (dbUser) {
+                        // Merge database data (overwrites localStorage)
+                        this.user = { ...this.user, ...dbUser };
+                        if (dbUser.totalPoints !== undefined) {
+                            this.totalPoints = dbUser.totalPoints;
+                        }
+                    }
                 }
             } catch (e) {
                 console.error('Error loading user:', e);
@@ -848,9 +899,10 @@ class TaskManager {
         this.tasks.unshift(task);
         taskInput.value = '';
         taskInput.focus();
-        this.saveTasks();
-        this.renderAllPages();
-        this.updateAllStats();
+        this.saveTasks().then(() => {
+            this.renderAllPages();
+            this.updateAllStats();
+        });
     }
 
     toggleTask(id) {
@@ -886,9 +938,10 @@ class TaskManager {
                 delete task.completedAt;
             }
             
-            this.saveTasks();
-            this.renderAllPages();
-            this.updateAllStats();
+            this.saveTasks().then(() => {
+                this.renderAllPages();
+                this.updateAllStats();
+            });
             this.updateMotivationMessages();
             this.updatePointsDisplay();
         }
@@ -909,10 +962,11 @@ class TaskManager {
             this.savePoints();
         }
         this.tasks = this.tasks.filter(t => t.id !== id);
-        this.saveTasks();
-        this.renderAllPages();
-        this.updateAllStats();
-        this.updatePointsDisplay();
+        this.saveTasks().then(() => {
+            this.renderAllPages();
+            this.updateAllStats();
+            this.updatePointsDisplay();
+        });
     }
 
     getFilteredTasks(page) {
@@ -1183,31 +1237,86 @@ class TaskManager {
         }
     }
 
-    saveTasks() {
-        // Store tasks per user if logged in, or use default key if not logged in
-        const storageKey = this.user ? `dailyRushTasks_${this.user.sub}` : 'dailyRushTasks_guest';
+    async saveTasks() {
+        if (!this.user || !this.user.sub) {
+            // Guest mode - use localStorage
+            const storageKey = 'dailyRushTasks_guest';
+            localStorage.setItem(storageKey, JSON.stringify(this.tasks));
+            return;
+        }
+
+        // Save to database
+        if (databaseService.isInitialized) {
+            await databaseService.saveTasks(this.user.sub, this.tasks);
+        }
+        
+        // Also save to localStorage as backup
+        const storageKey = `dailyRushTasks_${this.user.sub}`;
         localStorage.setItem(storageKey, JSON.stringify(this.tasks));
     }
 
     loadTasks() {
-        // Load tasks for current user, or guest tasks if not logged in
-        const storageKey = this.user ? `dailyRushTasks_${this.user.sub}` : 'dailyRushTasks_guest';
-        const saved = localStorage.getItem(storageKey);
-        if (saved) {
-            try {
-                this.tasks = JSON.parse(saved);
-            } catch (e) {
-                console.error('Error loading tasks:', e);
+        if (!this.user || !this.user.sub) {
+            // Guest mode - use localStorage
+            const storageKey = 'dailyRushTasks_guest';
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                try {
+                    this.tasks = JSON.parse(saved);
+                } catch (e) {
+                    this.tasks = [];
+                }
+            } else {
                 this.tasks = [];
             }
+            return;
+        }
+
+        // Load from database with real-time sync
+        if (databaseService.isInitialized) {
+            // Set up real-time listener
+            const unsubscribe = databaseService.loadTasks(this.user.sub, (tasks) => {
+                this.tasks = tasks || [];
+                this.renderAllPages();
+                this.updateAllStats();
+            });
+            
+            // Store unsubscribe function for cleanup
+            if (unsubscribe) {
+                this.taskUnsubscribe = unsubscribe;
+            }
         } else {
-            this.tasks = [];
+            // Fallback to localStorage
+            const storageKey = `dailyRushTasks_${this.user.sub}`;
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                try {
+                    this.tasks = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Error loading tasks:', e);
+                    this.tasks = [];
+                }
+            } else {
+                this.tasks = [];
+            }
         }
     }
 
-    savePoints() {
-        // Store points per user if logged in, or use default key if not logged in
-        const storageKey = this.user ? `dailyRushPoints_${this.user.sub}` : 'dailyRushPoints_guest';
+    async savePoints() {
+        if (!this.user || !this.user.sub) {
+            // Guest mode - use localStorage
+            const storageKey = 'dailyRushPoints_guest';
+            localStorage.setItem(storageKey, this.totalPoints.toString());
+            return;
+        }
+
+        // Save to database
+        if (databaseService.isInitialized) {
+            await databaseService.savePoints(this.user.sub, this.totalPoints);
+        }
+        
+        // Also save to localStorage as backup
+        const storageKey = `dailyRushPoints_${this.user.sub}`;
         localStorage.setItem(storageKey, this.totalPoints.toString());
     }
 
@@ -1248,11 +1357,13 @@ class TaskManager {
         if (confirmed) {
             this.tasks = [];
             this.totalPoints = 0;
-            this.saveTasks();
-            this.savePoints();
-            this.renderAllPages();
-            this.updateAllStats();
-            this.updatePointsDisplay();
+            this.saveTasks().then(() => {
+                this.savePoints().then(() => {
+                    this.renderAllPages();
+                    this.updateAllStats();
+                    this.updatePointsDisplay();
+                });
+            });
         }
     }
 
@@ -1274,11 +1385,13 @@ class TaskManager {
                 }
             });
             this.tasks = this.tasks.filter(t => !t.completed);
-            this.saveTasks();
-            this.savePoints();
-            this.renderAllPages();
-            this.updateAllStats();
-            this.updatePointsDisplay();
+            this.saveTasks().then(() => {
+                this.savePoints().then(() => {
+                    this.renderAllPages();
+                    this.updateAllStats();
+                    this.updatePointsDisplay();
+                });
+            });
         }
     }
 

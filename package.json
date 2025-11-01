@@ -1,0 +1,21 @@
+{
+  "name": "daily-rush",
+  "version": "1.0.0",
+  "description": "Daily Rush - Task Management App with Firebase",
+  "main": "index.html",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "task-manager",
+    "firebase",
+    "productivity"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "firebase": "^10.7.1"
+  }
+}
+
