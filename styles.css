@@ -7,7 +7,7 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: 
-        linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%),
+        linear-gradient(135deg, rgba(59, 130, 246, 0.6) 0%, rgba(16, 185, 129, 0.6) 100%),
         url('https://empmonitor.com/blog/wp-content/uploads/2023/12/How-to-Use-Your-Daily-Tasks-Tracker-Effectively--1024x576.webp');
     background-size: cover;
     background-position: center;
@@ -20,6 +20,35 @@ body {
     position: relative;
 }
 
+/* Enhance background image clarity */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        url('https://empmonitor.com/blog/wp-content/uploads/2023/12/How-to-Use-Your-Daily-Tasks-Tracker-Effectively--1024x576.webp');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    z-index: -2;
+    filter: brightness(1.1) contrast(1.15) saturate(1.1);
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(16, 185, 129, 0.5) 100%);
+    z-index: -1;
+}
+
 /* Icon Bar */
 .icon-bar {
     background: rgba(255, 255, 255, 0.95);
@@ -29,7 +58,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 1000;
-    border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 .icon-bar-content {
@@ -47,7 +76,7 @@ body {
 }
 
 .logo-icon {
-    color: #667eea;
+    color: #3b82f6;
     display: flex;
     align-items: center;
 }
@@ -55,7 +84,7 @@ body {
 .app-name {
     font-size: 1.3em;
     font-weight: 700;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -65,7 +94,7 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
     padding: 6px 12px;
     border-radius: 20px;
     color: white;
@@ -110,15 +139,15 @@ body {
 
 .nav-btn:hover {
     background: #f5f5f5;
-    border-color: #667eea;
+    border-color: #3b82f6;
     transform: translateY(-2px);
 }
 
 .nav-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
     color: white;
-    border-color: #667eea;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .nav-btn.active svg {
@@ -136,7 +165,7 @@ body {
     align-items: center;
     gap: 10px;
     padding: 6px 12px;
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(59, 130, 246, 0.1);
     border-radius: 20px;
     margin-right: 8px;
     cursor: pointer;
@@ -144,14 +173,14 @@ body {
 }
 
 .user-profile:hover {
-    background: rgba(102, 126, 234, 0.15);
+    background: rgba(59, 130, 246, 0.15);
 }
 
 .user-avatar {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    border: 2px solid #667eea;
+    border: 2px solid #3b82f6;
     object-fit: cover;
 }
 
@@ -159,7 +188,7 @@ body {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    border: 3px solid #667eea;
+    border: 3px solid #3b82f6;
     object-fit: cover;
     margin-bottom: 10px;
 }
@@ -167,18 +196,18 @@ body {
 .user-name {
     font-size: 0.9em;
     font-weight: 600;
-    color: #667eea;
+    color: #3b82f6;
 }
 
 .user-name-large {
     font-size: 1.2em;
     font-weight: 600;
-    color: #667eea;
+    color: #3b82f6;
     display: block;
 }
 
 .edit-profile-btn {
-    background: rgba(102, 126, 234, 0.2);
+    background: rgba(59, 130, 246, 0.2);
     border: none;
     border-radius: 50%;
     width: 24px;
@@ -187,14 +216,14 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #667eea;
+    color: #3b82f6;
     transition: all 0.3s;
     padding: 0;
     margin-left: 4px;
 }
 
 .edit-profile-btn:hover {
-    background: rgba(102, 126, 234, 0.3);
+    background: rgba(59, 130, 246, 0.3);
     transform: scale(1.1);
 }
 
@@ -226,7 +255,7 @@ body {
 
 .form-group input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #3b82f6;
 }
 
 .form-group small {
@@ -268,13 +297,13 @@ body {
 }
 
 .btn-save-profile {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
     color: white;
 }
 
 .btn-save-profile:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
 }
 
 .btn-reset-profile {
@@ -303,7 +332,7 @@ body {
     border-radius: 8px;
     padding: 8px 12px;
     cursor: pointer;
-    color: #667eea;
+    color: #3b82f6;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -312,9 +341,9 @@ body {
 
 .icon-btn:hover {
     background: #f5f5f5;
-    border-color: #667eea;
+    border-color: #3b82f6;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
 }
 
 .icon-btn:active {
@@ -345,7 +374,7 @@ header {
 }
 
 header h1 {
-    color: #667eea;
+    color: #3b82f6;
     font-size: 2.5em;
     margin-bottom: 5px;
     display: flex;
@@ -355,7 +384,7 @@ header h1 {
 }
 
 .header-icon {
-    color: #667eea;
+    color: #3b82f6;
 }
 
 .subtitle {
@@ -364,49 +393,153 @@ header h1 {
 }
 
 .task-input-section {
-    margin-bottom: 25px;
+    margin-bottom: 30px;
+    width: 100%;
 }
 
-.input-wrapper {
+.task-input-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    transition: box-shadow 0.3s, transform 0.3s;
+}
+
+.task-input-card:focus-within {
+    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.15);
+    transform: translateY(-2px);
+}
+
+.task-input-main {
     display: flex;
-    gap: 10px;
-    position: relative;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, rgba(16, 185, 129, 0.02) 100%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.task-input-options {
+    display: flex;
+    gap: 20px;
+    padding: 16px 20px;
+    background: #fafafa;
+    flex-wrap: wrap;
+}
+
+.input-option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 160px;
 }
 
 .input-icon {
-    position: absolute;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #999;
+    color: #3b82f6;
     pointer-events: none;
-    z-index: 1;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #taskInput {
     flex: 1;
-    padding: 15px 15px 15px 45px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
+    min-width: 200px;
+    padding: 14px 18px;
+    border: 2px solid transparent;
+    border-radius: 12px;
     font-size: 1em;
-    transition: border-color 0.3s;
+    background: white;
+    transition: all 0.3s;
+    box-sizing: border-box;
+    font-weight: 500;
 }
 
-.difficulty-select {
-    padding: 15px 20px;
-    border: 2px solid #e0e0e0;
+#taskInput:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+#taskInput::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+.option-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.option-label svg {
+    color: #3b82f6;
+    opacity: 0.7;
+}
+
+.date-input {
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
     border-radius: 10px;
     font-size: 0.95em;
     background: white;
     cursor: pointer;
-    transition: border-color 0.3s;
+    transition: all 0.3s;
     font-weight: 500;
-    min-width: 150px;
+    width: 100%;
+    color: #333;
+    box-sizing: border-box;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+}
+
+.date-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+.difficulty-select {
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 0.95em;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+    width: 100%;
+    color: #333;
+    box-sizing: border-box;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
 }
 
 .difficulty-select:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .difficulty-select option[value="easy"] {
@@ -422,36 +555,42 @@ header h1 {
 }
 
 .difficulty-select option[value="expert"] {
-    color: #667eea;
-}
-
-#taskInput:focus {
-    outline: none;
-    border-color: #667eea;
+    color: #3b82f6;
 }
 
 .btn-add {
-    padding: 15px 25px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     font-size: 1em;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.3s;
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    box-sizing: border-box;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-add:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 .btn-add:active {
     transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-add:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
 }
 
 /* Page Views */
@@ -483,7 +622,7 @@ header h1 {
 }
 
 .page-header h2 {
-    color: #667eea;
+    color: #3b82f6;
     font-size: 2em;
     margin-bottom: 8px;
 }
@@ -527,7 +666,7 @@ header h1 {
 
 .search-input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #3b82f6;
 }
 
 .sort-box {
@@ -554,7 +693,7 @@ header h1 {
 
 .sort-select:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #3b82f6;
 }
 
 .task-stats {
@@ -583,7 +722,7 @@ header h1 {
 }
 
 .stat-card.highlight {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
     color: white;
     border-color: rgba(255, 255, 255, 0.2);
 }
@@ -605,13 +744,13 @@ header h1 {
     align-items: center;
     justify-content: center;
     background: white;
-    color: #667eea;
+    color: #3b82f6;
     flex-shrink: 0;
 }
 
 .stat-icon.active {
-    background: rgba(102, 126, 234, 0.1);
-    color: #667eea;
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
 }
 
 .stat-icon.completed {
@@ -620,12 +759,12 @@ header h1 {
 }
 
 .stat-icon.points-icon {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
-    color: #667eea;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%);
+    color: #3b82f6;
 }
 
 .points-card {
-    border: 2px solid rgba(102, 126, 234, 0.2);
+    border: 2px solid rgba(59, 130, 246, 0.2);
 }
 
 .stat-info {
@@ -736,7 +875,7 @@ header h1 {
     width: 22px;
     height: 22px;
     cursor: pointer;
-    accent-color: #667eea;
+    accent-color: #3b82f6;
 }
 
 .task-text {
@@ -773,19 +912,60 @@ header h1 {
 }
 
 .task-difficulty.expert {
-    background: rgba(102, 126, 234, 0.15);
-    color: #667eea;
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.task-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.task-date svg {
+    width: 14px;
+    height: 14px;
+}
+
+.task-date.overdue {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.task-date.today {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    font-weight: 700;
+}
+
+.task-date.upcoming {
+    background: rgba(255, 167, 38, 0.15);
+    color: #ffa726;
+    border: 1px solid rgba(255, 167, 38, 0.3);
+}
+
+.task-date.future {
+    background: rgba(156, 163, 175, 0.15);
+    color: #9ca3af;
+    border: 1px solid rgba(156, 163, 175, 0.3);
 }
 
 .points-notification {
     position: fixed;
     top: 80px;
     right: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
     color: white;
     padding: 15px 25px;
     border-radius: 10px;
-    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -871,8 +1051,8 @@ header h1 {
 /* Login Required Message */
 .login-required-message {
     display: none;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-    border: 2px solid rgba(102, 126, 234, 0.3);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+    border: 2px solid rgba(59, 130, 246, 0.3);
     border-radius: 15px;
     padding: 40px 20px;
     margin: 30px 0;
@@ -888,12 +1068,12 @@ header h1 {
 }
 
 .login-required-content svg {
-    color: #667eea;
+    color: #3b82f6;
     margin-bottom: 10px;
 }
 
 .login-required-content h3 {
-    color: #667eea;
+    color: #3b82f6;
     font-size: 1.5em;
     margin: 0;
 }
@@ -906,7 +1086,7 @@ header h1 {
 }
 
 .btn-login-required {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
     color: white;
     border: none;
     border-radius: 10px;
@@ -920,7 +1100,7 @@ header h1 {
 
 .btn-login-required:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
 }
 
 .btn-login-required:active {
@@ -950,12 +1130,14 @@ header h1 {
     background: white;
     border-radius: 20px;
     padding: 40px;
-    max-width: 400px;
+    max-width: 500px;
     width: 90%;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     text-align: center;
     animation: slideUp 0.3s ease-out;
     position: relative;
+    overflow-y: auto;
+    max-height: 90vh;
 }
 
 .close-modal {
@@ -992,25 +1174,272 @@ header h1 {
     }
 }
 
-.login-header h2 {
-    color: #667eea;
-    font-size: 2em;
-    margin-bottom: 10px;
-}
-
-.login-header p {
-    color: #666;
+.login-header {
     margin-bottom: 30px;
 }
 
+.login-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.login-header h2 {
+    color: #333;
+    font-size: 2em;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.login-subtitle {
+    color: #666;
+    font-size: 1em;
+    margin-bottom: 0;
+}
+
+.auth-tabs {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    background: #f8f9fa;
+    padding: 5px;
+    border-radius: 10px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    color: #666;
+    transition: all 0.3s;
+}
+
+.auth-tab.active {
+    background: white;
+    color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.auth-tab:hover:not(.active) {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.login-options {
+    margin: 30px 0;
+}
+
+.email-auth-container {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.email-auth-container .form-group {
+    margin-bottom: 18px;
+    text-align: left;
+}
+
+.email-auth-container .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: 500;
+    font-size: 0.95em;
+}
+
+.email-auth-container .form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: all 0.3s;
+    background: white;
+    box-sizing: border-box;
+}
+
+.email-auth-container .form-group input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.auth-error {
+    background: #fee;
+    color: #c33;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    border: 1px solid #fcc;
+    white-space: pre-line;
+    line-height: 1.6;
+}
+
+.auth-error a {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.btn-auth-submit {
+    width: 100%;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.btn-auth-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+}
+
+.btn-auth-submit:active {
+    transform: translateY(0);
+}
+
+.btn-auth-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.google-signin-container {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.google-signin-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    color: #333;
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
 .google-signin-btn {
+    min-height: 50px;
     display: flex;
     justify-content: center;
-    margin-top: 20px;
+    align-items: center;
+    position: relative;
 }
 
 .google-signin-btn > div {
     margin: 0 auto;
+}
+
+.login-divider {
+    position: relative;
+    text-align: center;
+    margin: 25px 0;
+}
+
+.login-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e0e0e0;
+}
+
+.login-divider span {
+    position: relative;
+    background: white;
+    padding: 0 15px;
+    color: #999;
+    font-size: 0.9em;
+}
+
+.login-benefits {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border-radius: 12px;
+    padding: 25px;
+    text-align: left;
+}
+
+.login-benefits h3 {
+    color: #333;
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.benefits-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    color: #555;
+    font-size: 0.95em;
+}
+
+.benefits-list li svg {
+    color: #10b981;
+    flex-shrink: 0;
+}
+
+.login-footer {
+    margin-top: 25px;
+    font-size: 0.85em;
+    color: #999;
+    line-height: 1.6;
+}
+
+.login-footer a {
+    color: #3b82f6;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.login-footer a:hover {
+    color: #2563eb;
+    text-decoration: underline;
 }
 
 /* Responsive design */
@@ -1066,7 +1495,7 @@ header h1 {
         justify-content: space-around;
         margin-top: 8px;
         padding-top: 8px;
-        border-top: 1px solid rgba(102, 126, 234, 0.1);
+        border-top: 1px solid rgba(59, 130, 246, 0.1);
     }
 
     .nav-btn {
@@ -1130,6 +1559,51 @@ header h1 {
         padding: 15px;
         margin: 10px;
         border-radius: 15px;
+        box-sizing: border-box;
+    }
+    
+    .task-input-section {
+        padding: 0;
+        margin-bottom: 20px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .task-input-card {
+        border-radius: 12px;
+    }
+    
+    .task-input-main {
+        padding: 16px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .task-input-options {
+        padding: 12px 16px;
+        gap: 12px;
+        flex-direction: column;
+    }
+    
+    .input-option-group {
+        min-width: 100%;
+    }
+    
+    #taskInput {
+        min-width: 0;
+        width: 100%;
+        order: 2;
+    }
+    
+    .input-icon {
+        order: 1;
+    }
+    
+    .btn-add {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        padding: 12px 20px;
     }
 
     header {
@@ -1157,6 +1631,7 @@ header h1 {
     .input-wrapper {
         flex-direction: column;
         gap: 8px;
+        align-items: stretch;
     }
 
     .input-icon {
@@ -1164,14 +1639,27 @@ header h1 {
     }
 
     #taskInput {
+        width: 100%;
         padding: 12px 12px 12px 40px;
         font-size: 16px; /* Prevents zoom on iOS */
+        box-sizing: border-box;
+    }
+
+    .date-input {
+        width: 100%;
+        padding: 12px 15px;
+        font-size: 16px; /* Prevents zoom on iOS */
+        min-width: auto;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .difficulty-select {
         width: 100%;
         padding: 12px 15px;
         font-size: 0.95em;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .btn-add {
@@ -1179,6 +1667,18 @@ header h1 {
         padding: 12px 20px;
         justify-content: center;
         font-size: 0.95em;
+        box-sizing: border-box;
+    }
+
+    .task-date {
+        font-size: 0.7em;
+        padding: 3px 8px;
+        margin-left: 6px;
+    }
+
+    .task-date svg {
+        width: 12px;
+        height: 12px;
     }
 
     .page-header h2 {
@@ -1292,8 +1792,73 @@ header h1 {
         font-size: 1.5em;
     }
 
-    .login-header p {
+    .login-subtitle {
         font-size: 0.9em;
+    }
+
+    .login-icon {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 15px;
+    }
+
+    .login-icon svg {
+        width: 32px;
+        height: 32px;
+    }
+
+    .google-signin-container {
+        padding: 15px;
+    }
+
+    .google-signin-header {
+        font-size: 1em;
+    }
+
+    .login-benefits {
+        padding: 20px 15px;
+    }
+
+    .login-benefits h3 {
+        font-size: 1.1em;
+    }
+
+    .benefits-list li {
+        font-size: 0.9em;
+        padding: 10px 0;
+    }
+
+    .login-footer {
+        font-size: 0.8em;
+        padding: 0 5px;
+    }
+
+    .auth-tabs {
+        margin: 15px 0;
+        gap: 5px;
+    }
+
+    .auth-tab {
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+
+    .email-auth-container {
+        padding: 15px;
+    }
+
+    .email-auth-container .form-group {
+        margin-bottom: 15px;
+    }
+
+    .email-auth-container .form-group input {
+        padding: 10px 12px;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    .btn-auth-submit {
+        padding: 12px 18px;
+        font-size: 0.95em;
     }
 
     .edit-profile-form {

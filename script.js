@@ -24,42 +24,67 @@ class TaskManager {
             hard: 50,
             expert: 100
         };
-        // Initialize database first
+        this.authMode = 'signin'; // 'signin' or 'signup'
+        // Initialize Google Sign-In first (don't wait for database)
+        this.initializeGoogleSignIn();
+        
+        // Initialize database in parallel (non-blocking)
         this.initializeDatabase().then(() => {
-            // Load user first, then load their tasks
-            this.loadUser().then(() => {
-                // If no user is logged in, show login modal immediately
-                if (!this.user) {
-                    this.showLoginModal();
-                    // Disable task functionality until logged in
-                    this.disableTaskFunctionality();
-                } else {
-                    // Migrate data from localStorage if needed
-                    this.migrateData();
-                    // Load tasks after user is loaded (so we know which user's tasks to load)
-                    this.loadTasks();
-                    this.loadPoints();
-                    this.renderAllPages();
-                    this.updateAllStats();
-                    this.updatePointsDisplay();
-                }
-                
-                this.initializeGoogleSignIn();
-                this.initializeEventListeners();
-                
-                // Update user display (will show login button if not logged in)
-                this.updateUserDisplay();
-            });
+            // Database initialized, continue with user loading
+        }).catch(() => {
+            // Database failed, continue anyway
+        });
+        
+        // Load user first, then load their tasks
+        this.loadUser().then(() => {
+            // If no user is logged in, show login modal immediately
+            if (!this.user) {
+                this.showLoginModal();
+                // Disable task functionality until logged in
+                this.disableTaskFunctionality();
+            } else {
+                // Migrate data from localStorage if needed
+                this.migrateData();
+                // Load tasks after user is loaded (so we know which user's tasks to load)
+                this.loadTasks();
+                this.loadPoints();
+                this.renderAllPages();
+                this.updateAllStats();
+                this.updatePointsDisplay();
+            }
+            
+            this.initializeEventListeners();
+            
+            // Update user display (will show login button if not logged in)
+            this.updateUserDisplay();
+            
+            // Initialize date input minimum to today
+            this.initializeDateInput();
         });
     }
 
-    async initializeDatabase() {
-        // Initialize database service
-        const initialized = await databaseService.initialize();
-        if (!initialized) {
-            console.warn('Database not available, using localStorage fallback');
+    initializeDateInput() {
+        const taskDateInput = document.getElementById('taskDate');
+        if (taskDateInput) {
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            taskDateInput.min = today;
         }
-        return initialized;
+    }
+
+    async initializeDatabase() {
+        try {
+            // Initialize database service
+            const initialized = await databaseService.initialize();
+            if (!initialized) {
+                console.warn('Database not available, using localStorage fallback');
+            }
+            return initialized;
+        } catch (error) {
+            // Don't let Firebase errors block Google Sign-In
+            console.error('Firebase initialization error (non-blocking):', error);
+            return false;
+        }
     }
 
     async migrateData() {
@@ -80,31 +105,75 @@ class TaskManager {
         }
 
         // Wait for Google Identity Services to load
-        if (typeof google !== 'undefined' && google.accounts) {
+        if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
             try {
+                const buttonElement = document.getElementById('googleSignInButton');
+                if (!buttonElement) {
+                    console.error('Google Sign-In button element not found');
+                    setTimeout(() => this.initializeGoogleSignIn(), 200);
+                    return;
+                }
+
+                console.log('Initializing Google Sign-In with Client ID:', this.googleClientId);
+                
                 google.accounts.id.initialize({
                     client_id: this.googleClientId,
-                    callback: (response) => this.handleCredentialResponse(response),
-                    error_callback: (error) => this.handleError(error),
+                    callback: (response) => {
+                        console.log('🎉 Google Sign-In callback received!');
+                        console.log('Response:', response);
+                        try {
+                            if (response && response.credential) {
+                                console.log('✅ Valid credential received, processing...');
+                                // Use setTimeout to ensure this runs in next tick
+                                setTimeout(() => {
+                                    this.handleCredentialResponse(response);
+                                }, 100);
+                            } else {
+                                console.error('❌ Invalid response from Google Sign-In:', response);
+                                alert('Invalid response from Google. Response: ' + JSON.stringify(response));
+                            }
+                        } catch (err) {
+                            console.error('❌ Error in callback handler:', err);
+                            alert('Error handling login: ' + err.message);
+                        }
+                    },
+                    error_callback: (error) => {
+                        console.error('❌ Google Sign-In error callback:', error);
+                        this.handleError(error);
+                    },
+                    ux_mode: 'popup',
+                    auto_select: false,
+                    cancel_on_tap_outside: true,
+                    itp_support: true,
+                    context: 'signin',
+                    login_uri: window.location.origin,
+                    native_callback: null
                 });
 
+                // Clear any existing content in the button element
+                buttonElement.innerHTML = '';
+                
                 google.accounts.id.renderButton(
-                    document.getElementById('googleSignInButton'),
+                    buttonElement,
                     {
                         theme: 'outline',
                         size: 'large',
                         width: 300,
                         text: 'signin_with',
-                        locale: 'en'
+                        locale: 'en',
+                        type: 'standard'
                     }
                 );
+                
+                console.log('Google Sign-In button rendered successfully');
             } catch (error) {
                 console.error('Google Sign-In initialization error:', error);
                 this.showOAuthError();
             }
         } else {
             // Retry after a short delay if Google script hasn't loaded
-            setTimeout(() => this.initializeGoogleSignIn(), 100);
+            console.log('Google Identity Services not loaded yet, retrying...');
+            setTimeout(() => this.initializeGoogleSignIn(), 200);
         }
     }
 
@@ -251,27 +320,63 @@ class TaskManager {
 
     async handleCredentialResponse(response) {
         try {
+            console.log('🔐 Processing Google Sign-In response...');
+            console.log('Response object:', response);
+            
+            if (!response || !response.credential) {
+                console.error('❌ Invalid response - no credential:', response);
+                alert('Invalid response from Google Sign-In. Please try again.');
+                return;
+            }
+            
             // Decode the JWT token to get user info
-            const payload = JSON.parse(atob(response.credential.split('.')[1]));
+            const parts = response.credential.split('.');
+            if (parts.length !== 3) {
+                console.error('❌ Invalid JWT format');
+                alert('Invalid token format. Please try again.');
+                return;
+            }
+            
+            const payload = JSON.parse(atob(parts[1]));
+            console.log('✅ Decoded user payload:', payload);
+            
+            if (!payload.sub || !payload.email) {
+                console.error('❌ Missing required user data in payload');
+                alert('Missing user information. Please try again.');
+                return;
+            }
             
             const previousUserId = this.user ? this.user.sub : null;
             const newUserId = payload.sub;
             
             this.user = {
-                name: payload.name,
+                name: payload.name || 'User',
                 email: payload.email,
-                picture: payload.picture,
+                picture: payload.picture || '',
                 sub: payload.sub,
                 customName: null,
                 customPicture: null
             };
 
-            await this.saveUser();
+            console.log('👤 User data set:', this.user);
+            console.log('💾 Saving user...');
             
-            // Migrate data from localStorage if needed
-            this.migrateData();
+            // Save user (don't await - continue even if it fails)
+            this.saveUser().catch(err => {
+                console.warn('Warning: Could not save user to database:', err);
+            });
+            
+            // Also save to localStorage immediately
+            localStorage.setItem('dailyRushUser', JSON.stringify(this.user));
+            console.log('✅ User saved to localStorage');
+            
+            // Migrate data from localStorage if needed (non-blocking)
+            this.migrateData().catch(err => {
+                console.warn('Warning: Migration failed:', err);
+            });
             
             // Load user's tasks (either new user or switching users)
+            console.log('📋 Loading tasks...');
             this.loadTasks();
             this.loadPoints();
             this.renderAllPages();
@@ -281,14 +386,22 @@ class TaskManager {
             // Enable task functionality now that user is logged in
             this.enableTaskFunctionality();
             
+            console.log('🔄 Updating user display...');
             this.updateUserDisplay();
+            
+            console.log('🚪 Hiding login modal...');
             this.hideLoginModal();
             
             // Show welcome message
+            console.log('👋 Showing welcome notification...');
             this.showWelcomeNotification();
+            
+            console.log('✅ Login complete!');
+            
         } catch (error) {
-            console.error('Error processing credential response:', error);
-            alert('There was an error processing your sign-in. Please try again.');
+            console.error('❌ Error processing credential response:', error);
+            console.error('Error stack:', error.stack);
+            alert('Error: ' + (error.message || 'Unknown error occurred. Please check console for details.'));
         }
     }
 
@@ -351,34 +464,320 @@ class TaskManager {
 
     showLoginModal() {
         const loginModal = document.getElementById('loginModal');
-        loginModal.classList.remove('hidden');
+        if (loginModal) {
+            loginModal.classList.remove('hidden');
+            console.log('📱 Login modal shown');
+            
+            // Reset to sign in mode
+            this.switchAuthMode('signin');
+            
+            // Re-initialize Google Sign-In button when modal is shown
+            setTimeout(() => {
+                if (!this.user) {
+                    this.initializeGoogleSignIn();
+                }
+            }, 300);
+        }
     }
 
     hideLoginModal() {
         const loginModal = document.getElementById('loginModal');
-        loginModal.classList.add('hidden');
+        if (loginModal) {
+            loginModal.classList.add('hidden');
+            console.log('🚪 Login modal hidden');
+        }
+    }
+
+    switchAuthMode(mode) {
+        this.authMode = mode;
+        const signInTab = document.getElementById('signInTab');
+        const signUpTab = document.getElementById('signUpTab');
+        const authUsernameGroup = document.getElementById('authUsernameGroup');
+        const authSubmitText = document.getElementById('authSubmitText');
+        const authError = document.getElementById('authError');
+        
+        // Update tabs
+        if (signInTab && signUpTab) {
+            if (mode === 'signin') {
+                signInTab.classList.add('active');
+                signUpTab.classList.remove('active');
+                if (authUsernameGroup) authUsernameGroup.style.display = 'none';
+                if (authSubmitText) authSubmitText.textContent = 'Sign In';
+            } else {
+                signUpTab.classList.add('active');
+                signInTab.classList.remove('active');
+                if (authUsernameGroup) authUsernameGroup.style.display = 'block';
+                if (authSubmitText) authSubmitText.textContent = 'Sign Up';
+            }
+        }
+        
+        // Clear error
+        if (authError) {
+            authError.style.display = 'none';
+            authError.textContent = '';
+        }
+        
+        // Clear form
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const authUsername = document.getElementById('authUsername');
+        if (authEmail) authEmail.value = '';
+        if (authPassword) authPassword.value = '';
+        if (authUsername) authUsername.value = '';
+    }
+
+    async handleEmailAuth() {
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const authUsername = document.getElementById('authUsername');
+        const authError = document.getElementById('authError');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const authSubmitText = document.getElementById('authSubmitText');
+        
+        if (!authEmail || !authPassword) return;
+        
+        const email = authEmail.value.trim();
+        const password = authPassword.value;
+        const username = authUsername ? authUsername.value.trim() : '';
+        
+        // Validate
+        if (!email || !password) {
+            this.showAuthError('Please fill in all required fields');
+            return;
+        }
+        
+        if (password.length < 6) {
+            this.showAuthError('Password must be at least 6 characters');
+            return;
+        }
+        
+        if (this.authMode === 'signup' && !username) {
+            this.showAuthError('Please choose a username');
+            return;
+        }
+        
+        // Disable button
+        if (authSubmitBtn) {
+            authSubmitBtn.disabled = true;
+            if (authSubmitText) authSubmitText.textContent = 'Please wait...';
+        }
+        
+        try {
+            let firebaseUser;
+            
+            // Check if Firebase Auth is available
+            if (typeof firebase === 'undefined' || !firebase.auth) {
+                this.showAuthError('Firebase Auth not available. Please check your connection and ensure Firebase SDK is loaded.');
+                if (authSubmitBtn) {
+                    authSubmitBtn.disabled = false;
+                    if (authSubmitText) authSubmitText.textContent = this.authMode === 'signin' ? 'Sign In' : 'Sign Up';
+                }
+                return;
+            }
+            
+            // Initialize Firebase Auth if needed
+            try {
+                if (!firebase.apps.length) {
+                    if (!firebaseConfig || !firebaseConfig.apiKey) {
+                        throw new Error('Firebase configuration is missing. Please check firebase-config.js');
+                    }
+                    firebase.initializeApp(firebaseConfig);
+                }
+            } catch (initError) {
+                console.error('Firebase initialization error:', initError);
+                if (initError.code === 'auth/api-key-not-valid') {
+                    this.showAuthError('Invalid Firebase API key. Please update your Firebase configuration. See console for details.');
+                } else {
+                    this.showAuthError('Firebase initialization failed: ' + initError.message);
+                }
+                if (authSubmitBtn) {
+                    authSubmitBtn.disabled = false;
+                    if (authSubmitText) authSubmitText.textContent = this.authMode === 'signin' ? 'Sign In' : 'Sign Up';
+                }
+                return;
+            }
+            
+            const auth = firebase.auth();
+            
+            if (this.authMode === 'signup') {
+                // Create new user
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                firebaseUser = userCredential.user;
+                
+                // Update profile with username
+                if (username) {
+                    await firebaseUser.updateProfile({
+                        displayName: username
+                    });
+                }
+                
+                console.log('✅ New user created:', firebaseUser.uid);
+            } else {
+                // Sign in existing user
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                firebaseUser = userCredential.user;
+                console.log('✅ User signed in:', firebaseUser.uid);
+            }
+            
+            // Get user data
+            const displayName = firebaseUser.displayName || username || email.split('@')[0];
+            const photoURL = firebaseUser.photoURL || '';
+            
+            // Set user object
+            this.user = {
+                name: displayName,
+                email: firebaseUser.email,
+                picture: photoURL,
+                sub: firebaseUser.uid,
+                customName: null,
+                customPicture: null
+            };
+            
+            // Save user
+            await this.saveUser();
+            
+            // Load user data from database
+            await this.loadUser();
+            
+            // Load tasks and points
+            this.loadTasks();
+            this.loadPoints();
+            this.renderAllPages();
+            this.updateAllStats();
+            this.updatePointsDisplay();
+            
+            // Enable task functionality
+            this.enableTaskFunctionality();
+            
+            // Update UI
+            this.updateUserDisplay();
+            this.hideLoginModal();
+            
+            // Show welcome message
+            this.showWelcomeNotification();
+            
+            console.log('✅ Email authentication successful');
+            
+        } catch (error) {
+            console.error('❌ Authentication error:', error);
+            let errorMessage = 'An error occurred. Please try again.';
+            
+            if (error.code === 'auth/operation-not-allowed') {
+                errorMessage = 'Email/Password authentication is not enabled. Please enable it in Firebase Console:\n\n1. Go to Firebase Console > Authentication > Sign-in method\n2. Click on "Email/Password"\n3. Enable it and click Save\n\nThen refresh this page.';
+            } else if (error.code === 'auth/email-already-in-use') {
+                errorMessage = 'This email is already registered. Please sign in instead.';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = 'Invalid email address.';
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = 'Password is too weak. Please use a stronger password.';
+            } else if (error.code === 'auth/user-not-found') {
+                errorMessage = 'No account found with this email. Please sign up first.';
+            } else if (error.code === 'auth/wrong-password') {
+                errorMessage = 'Incorrect password. Please try again.';
+            } else if (error.code === 'auth/too-many-requests') {
+                errorMessage = 'Too many failed attempts. Please try again later.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            this.showAuthError(errorMessage);
+        } finally {
+            // Re-enable button
+            if (authSubmitBtn) {
+                authSubmitBtn.disabled = false;
+                if (authSubmitText) authSubmitText.textContent = this.authMode === 'signin' ? 'Sign In' : 'Sign Up';
+            }
+        }
+    }
+
+    showAuthError(message) {
+        const authError = document.getElementById('authError');
+        if (authError) {
+            authError.textContent = message;
+            authError.style.display = 'block';
+            // Scroll to error
+            authError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     }
 
     async logout() {
-        // Save current user's data before logging out
-        await this.saveTasks();
-        await this.savePoints();
+        console.log('🚪 Starting logout process...');
         
+        // Store user ID before clearing
+        const previousUserId = this.user ? this.user.sub : null;
+        
+        // Start async save operations (don't wait for them)
+        Promise.all([
+            this.saveTasks().catch(err => console.warn('Save tasks error:', err)),
+            this.savePoints().catch(err => console.warn('Save points error:', err))
+        ]).catch(() => {}); // Ignore errors
+        
+        // Unsubscribe from database listeners if they exist
+        if (this.taskUnsubscribe && typeof this.taskUnsubscribe === 'function') {
+            try {
+                this.taskUnsubscribe();
+                this.taskUnsubscribe = null;
+            } catch (error) {
+                console.warn('Error unsubscribing from database:', error);
+            }
+        }
+        
+        // Clear user data immediately
         this.user = null;
-        await this.saveUser();
         
-        // Clear tasks and points display
+        // Clear from localStorage immediately
+        localStorage.removeItem('dailyRushUser');
+        if (previousUserId) {
+            // Clear user-specific data
+            localStorage.removeItem(`dailyRushTasks_${previousUserId}`);
+            localStorage.removeItem(`dailyRushPoints_${previousUserId}`);
+        }
+        
+        // Clear tasks and points display immediately
         this.tasks = [];
         this.totalPoints = 0;
         
-        // Disable task functionality
+        // Update UI immediately (don't wait for async operations)
         this.disableTaskFunctionality();
-        
         this.updateUserDisplay();
         this.renderAllPages();
         this.updateAllStats();
         this.updatePointsDisplay();
         this.showLoginModal();
+        
+        console.log('✅ Logout UI updated');
+        
+        // Continue with background cleanup (non-blocking)
+        try {
+            // Save null user (clears database user if needed)
+            await this.saveUser().catch(err => console.warn('Save user error:', err));
+            
+            // Sign out from Firebase Auth (non-blocking)
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                try {
+                    const auth = firebase.auth();
+                    await auth.signOut();
+                    console.log('✅ Signed out from Firebase Auth');
+                } catch (error) {
+                    console.warn('Error signing out from Firebase Auth:', error);
+                }
+            }
+            
+            // Revoke Google session if available (non-blocking)
+            if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                try {
+                    // Disable auto sign-in for future sessions
+                    google.accounts.id.disableAutoSelect();
+                } catch (error) {
+                    console.warn('Error disabling auto-select:', error);
+                }
+            }
+            
+            console.log('✅ Logout complete');
+        } catch (error) {
+            console.error('❌ Error during logout cleanup:', error);
+            // Already logged out, so ignore cleanup errors
+        }
     }
 
     disableTaskFunctionality() {
@@ -386,6 +785,7 @@ class TaskManager {
         const taskInput = document.getElementById('taskInput');
         const addTaskBtn = document.getElementById('addTaskBtn');
         const difficultySelect = document.getElementById('taskDifficulty');
+        const taskDateInput = document.getElementById('taskDate');
         const clearAllBtn = document.getElementById('clearAllBtn');
         const exportBtn = document.getElementById('exportBtn');
         const clearCompletedBtn = document.getElementById('clearCompletedBtn');
@@ -401,6 +801,9 @@ class TaskManager {
         }
         if (difficultySelect) {
             difficultySelect.disabled = true;
+        }
+        if (taskDateInput) {
+            taskDateInput.disabled = true;
         }
         if (clearAllBtn) {
             clearAllBtn.disabled = true;
@@ -424,6 +827,7 @@ class TaskManager {
         const taskInput = document.getElementById('taskInput');
         const addTaskBtn = document.getElementById('addTaskBtn');
         const difficultySelect = document.getElementById('taskDifficulty');
+        const taskDateInput = document.getElementById('taskDate');
         const clearAllBtn = document.getElementById('clearAllBtn');
         const exportBtn = document.getElementById('exportBtn');
         const clearCompletedBtn = document.getElementById('clearCompletedBtn');
@@ -439,6 +843,9 @@ class TaskManager {
         }
         if (difficultySelect) {
             difficultySelect.disabled = false;
+        }
+        if (taskDateInput) {
+            taskDateInput.disabled = false;
         }
         if (clearAllBtn) {
             clearAllBtn.disabled = false;
@@ -494,52 +901,107 @@ class TaskManager {
     }
 
     async saveUser() {
-        if (this.user && this.user.sub) {
-            // Save to database
-            await databaseService.saveUser(this.user.sub, {
-                email: this.user.email,
-                name: this.user.name,
-                picture: this.user.picture,
-                customName: this.user.customName,
-                customPicture: this.user.customPicture,
-                totalPoints: this.totalPoints
-            });
-            
-            // Also save to localStorage as backup
-            localStorage.setItem('dailyRushUser', JSON.stringify(this.user));
-        } else {
-            localStorage.removeItem('dailyRushUser');
+        try {
+            if (this.user && this.user.sub) {
+                // Always save to localStorage first (immediate)
+                localStorage.setItem('dailyRushUser', JSON.stringify(this.user));
+                console.log('✅ User saved to localStorage');
+                
+                // Then try to save to database (non-blocking)
+                if (databaseService && databaseService.isInitialized) {
+                    try {
+                        await databaseService.saveUser(this.user.sub, {
+                            email: this.user.email,
+                            name: this.user.name,
+                            picture: this.user.picture,
+                            customName: this.user.customName,
+                            customPicture: this.user.customPicture,
+                            totalPoints: this.totalPoints
+                        });
+                        console.log('✅ User saved to database');
+                    } catch (dbError) {
+                        console.warn('⚠️ Database save failed (using localStorage only):', dbError);
+                        // Continue - localStorage is already saved
+                    }
+                }
+            } else {
+                localStorage.removeItem('dailyRushUser');
+            }
+        } catch (error) {
+            console.error('❌ Error in saveUser:', error);
+            // Still save to localStorage as fallback
+            if (this.user) {
+                try {
+                    localStorage.setItem('dailyRushUser', JSON.stringify(this.user));
+                } catch (e) {
+                    console.error('❌ Could not save to localStorage:', e);
+                }
+            }
         }
     }
 
     async loadUser() {
-        // Try localStorage first for immediate load
-        const saved = localStorage.getItem('dailyRushUser');
-        if (saved) {
+        // Check Firebase Auth state first (for email/password users)
+        if (typeof firebase !== 'undefined' && firebase.auth) {
             try {
-                this.user = JSON.parse(saved);
-                // Ensure custom fields exist (for old users)
-                if (!this.user.hasOwnProperty('customName')) {
-                    this.user.customName = null;
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
                 }
-                if (!this.user.hasOwnProperty('customPicture')) {
-                    this.user.customPicture = null;
-                }
+                const auth = firebase.auth();
+                const firebaseUser = auth.currentUser;
                 
-                // Load from database if available (will sync)
-                if (this.user.sub && databaseService.isInitialized) {
-                    const dbUser = await databaseService.loadUser(this.user.sub);
-                    if (dbUser) {
-                        // Merge database data (overwrites localStorage)
-                        this.user = { ...this.user, ...dbUser };
-                        if (dbUser.totalPoints !== undefined) {
-                            this.totalPoints = dbUser.totalPoints;
-                        }
+                if (firebaseUser) {
+                    // User is logged in via Firebase Auth
+                    const displayName = firebaseUser.displayName || firebaseUser.email.split('@')[0];
+                    this.user = {
+                        name: displayName,
+                        email: firebaseUser.email,
+                        picture: firebaseUser.photoURL || '',
+                        sub: firebaseUser.uid,
+                        customName: null,
+                        customPicture: null
+                    };
+                    // Save to localStorage
+                    localStorage.setItem('dailyRushUser', JSON.stringify(this.user));
+                }
+            } catch (e) {
+                console.warn('Firebase Auth check failed:', e);
+            }
+        }
+        
+        // Try localStorage for Google Sign-In users or fallback
+        if (!this.user) {
+            const saved = localStorage.getItem('dailyRushUser');
+            if (saved) {
+                try {
+                    this.user = JSON.parse(saved);
+                    // Ensure custom fields exist (for old users)
+                    if (!this.user.hasOwnProperty('customName')) {
+                        this.user.customName = null;
+                    }
+                    if (!this.user.hasOwnProperty('customPicture')) {
+                        this.user.customPicture = null;
+                    }
+                } catch (e) {
+                    console.error('Error loading user from localStorage:', e);
+                    this.user = null;
+                }
+            }
+        }
+        
+        // Load from database if available (will sync)
+        if (this.user && this.user.sub && databaseService.isInitialized) {
+            try {
+                const dbUser = await databaseService.loadUser(this.user.sub);
+                if (dbUser) {
+                    // Merge database data (overwrites localStorage)
+                    this.user = { ...this.user, ...dbUser };
+                    if (dbUser.totalPoints !== undefined) {
+                        this.totalPoints = dbUser.totalPoints;
                     }
                 }
             } catch (e) {
-                console.error('Error loading user:', e);
-                this.user = null;
+                console.warn('Error loading user from database:', e);
             }
         }
     }
@@ -666,6 +1128,16 @@ class TaskManager {
         const clearCompletedBtn = document.getElementById('clearCompletedBtn');
         const logoutBtn = document.getElementById('logoutBtn');
 
+        // Auth tabs
+        const signInTab = document.getElementById('signInTab');
+        const signUpTab = document.getElementById('signUpTab');
+        if (signInTab) {
+            signInTab.addEventListener('click', () => this.switchAuthMode('signin'));
+        }
+        if (signUpTab) {
+            signUpTab.addEventListener('click', () => this.switchAuthMode('signup'));
+        }
+
         // Navigation buttons
         navButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -741,12 +1213,50 @@ class TaskManager {
             }
         });
 
-        // Logout
-        logoutBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to logout?')) {
-                this.logout();
-            }
-        });
+        // Logout - use event delegation for reliability
+        const iconBarRight = document.querySelector('.icon-bar-right');
+        if (iconBarRight) {
+            iconBarRight.addEventListener('click', (e) => {
+                const logoutBtn = e.target.closest('#logoutBtn');
+                if (logoutBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🔄 Logout button clicked');
+                    if (confirm('Are you sure you want to logout?')) {
+                        console.log('✅ User confirmed logout, executing...');
+                        this.logout().catch(error => {
+                            console.error('❌ Logout failed:', error);
+                            alert('Logout failed. Please try again or refresh the page.');
+                        });
+                    } else {
+                        console.log('❌ User cancelled logout');
+                    }
+                }
+            });
+        }
+        
+        // Also attach directly to the button as backup
+        if (logoutBtn) {
+            const handleLogout = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔄 Logout button clicked (direct)');
+                if (confirm('Are you sure you want to logout?')) {
+                    console.log('✅ User confirmed logout, executing...');
+                    this.logout().catch(error => {
+                        console.error('❌ Logout failed:', error);
+                        alert('Logout failed. Please try again or refresh the page.');
+                    });
+                } else {
+                    console.log('❌ User cancelled logout');
+                }
+            };
+            logoutBtn.addEventListener('click', handleLogout);
+            // Also add mousedown as backup
+            logoutBtn.addEventListener('mousedown', handleLogout);
+        } else {
+            console.error('Logout button not found');
+        }
 
         // Login button (show modal)
         const loginBtn = document.getElementById('loginBtn');
@@ -879,8 +1389,10 @@ class TaskManager {
         
         const taskInput = document.getElementById('taskInput');
         const difficultySelect = document.getElementById('taskDifficulty');
+        const taskDateInput = document.getElementById('taskDate');
         const taskText = taskInput.value.trim();
         const difficulty = difficultySelect.value;
+        const taskDate = taskDateInput ? taskDateInput.value : '';
 
         if (taskText === '') {
             taskInput.focus();
@@ -893,11 +1405,13 @@ class TaskManager {
             difficulty: difficulty,
             completed: false,
             pointsEarned: false,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            dueDate: taskDate || null
         };
 
         this.tasks.unshift(task);
         taskInput.value = '';
+        if (taskDateInput) taskDateInput.value = '';
         taskInput.focus();
         this.saveTasks().then(() => {
             this.renderAllPages();
@@ -1030,10 +1544,57 @@ class TaskManager {
         return labels[difficulty] || 'Medium';
     }
 
+    formatDate(dateString) {
+        if (!dateString) return null;
+        const date = new Date(dateString + 'T00:00:00');
+        if (isNaN(date.getTime())) return null; // Invalid date
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const taskDate = new Date(date);
+        taskDate.setHours(0, 0, 0, 0);
+        
+        const diffTime = taskDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        const month = date.toLocaleString('en-US', { month: 'short' });
+        const day = date.getDate();
+        const year = date.getFullYear();
+        
+        if (diffDays < 0) {
+            return { text: `${month} ${day}, ${year}`, class: 'overdue', days: diffDays };
+        } else if (diffDays === 0) {
+            return { text: 'Today', class: 'today', days: 0 };
+        } else if (diffDays === 1) {
+            return { text: 'Tomorrow', class: 'upcoming', days: 1 };
+        } else if (diffDays <= 7) {
+            return { text: `${month} ${day} (in ${diffDays} days)`, class: 'upcoming', days: diffDays };
+        } else {
+            return { text: `${month} ${day}, ${year}`, class: 'future', days: diffDays };
+        }
+    }
+
     renderTask(task, listId) {
         const difficulty = task.difficulty || 'medium';
         const difficultyLabel = this.getDifficultyLabel(difficulty);
         const points = task.completed && task.pointsEarned ? ` (+${this.pointsValues[difficulty]} pts)` : '';
+        
+        // Format date if available
+        let dateBadge = '';
+        if (task.dueDate) {
+            const dateInfo = this.formatDate(task.dueDate);
+            if (dateInfo) {
+                dateBadge = `<span class="task-date ${dateInfo.class}" title="${task.dueDate}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    ${dateInfo.text}
+                </span>`;
+            }
+        }
         
         const li = document.createElement('li');
         li.className = `task-item ${task.completed ? 'completed' : ''}`;
@@ -1048,6 +1609,7 @@ class TaskManager {
             <span class="task-text">
                 ${this.escapeHtml(task.text)}
                 <span class="task-difficulty ${difficulty}">${difficultyLabel}</span>
+                ${dateBadge}
                 ${points ? `<span style="color: #667eea; font-weight: 600;">${points}</span>` : ''}
             </span>
             <button class="task-delete" ${this.user ? '' : 'disabled'} onclick="taskManager.deleteTask(${task.id})" title="Delete task">
@@ -1432,4 +1994,6 @@ class TaskManager {
 let taskManager;
 document.addEventListener('DOMContentLoaded', () => {
     taskManager = new TaskManager();
+    // Make it available globally for onclick handlers
+    window.taskManager = taskManager;
 });

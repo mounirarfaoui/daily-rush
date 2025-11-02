@@ -11,21 +11,46 @@ class DatabaseService {
         try {
             // Check if Firebase is loaded
             if (typeof firebase === 'undefined') {
-                console.error('Firebase SDK not loaded');
+                console.error('❌ Firebase SDK not loaded. Make sure firebase scripts are included in index.html');
+                return false;
+            }
+
+            // Validate Firebase config
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                console.error('❌ Firebase configuration is missing or invalid!');
+                console.error('Please update firebase-config.js with your Firebase project credentials.');
                 return false;
             }
 
             // Initialize Firebase if not already initialized
             if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    console.log('✅ Firebase initialized successfully');
+                } catch (initError) {
+                    console.error('❌ Firebase initialization error:', initError);
+                    if (initError.code === 'auth/api-key-not-valid') {
+                        console.error('⚠️ Invalid API Key. Please check your Firebase configuration.');
+                        console.error('Steps to fix:');
+                        console.error('1. Go to https://console.firebase.google.com/');
+                        console.error('2. Select your project');
+                        console.error('3. Go to Project Settings > General');
+                        console.error('4. Copy the config from "Your apps" section');
+                        console.error('5. Update firebase-config.js with the correct values');
+                    }
+                    return false;
+                }
             }
 
             this.db = firebase.firestore();
             this.isInitialized = true;
-            console.log('Database initialized');
+            console.log('✅ Database initialized');
             return true;
         } catch (error) {
-            console.error('Error initializing database:', error);
+            console.error('❌ Error initializing database:', error);
+            if (error.code) {
+                console.error('Error code:', error.code);
+            }
             return false;
         }
     }
