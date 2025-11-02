@@ -25,6 +25,19 @@ class TaskManager {
             expert: 100
         };
         this.authMode = 'signin'; // 'signin' or 'signup'
+        
+        // Pomodoro Timer
+        this.pomodoro = {
+            mode: 'work', // 'work', 'shortBreak', 'longBreak'
+            timeLeft: 25 * 60, // in seconds
+            totalTime: 25 * 60,
+            isRunning: false,
+            isPaused: false,
+            timerInterval: null,
+            workCount: 0, // number of completed work sessions
+            totalFocusTime: 0, // total minutes focused today
+            completedToday: 0
+        };
         // Initialize Google Sign-In first (don't wait for database)
         this.initializeGoogleSignIn();
         
@@ -359,10 +372,62 @@ class TaskManager {
             };
 
             console.log('👤 User data set:', this.user);
-            console.log('💾 Saving user...');
+            console.log('💾 Saving user to Firebase...');
             
-            // Save user (don't await - continue even if it fails)
-            this.saveUser().catch(err => {
+            // Sign in to Firebase Auth with Google credential
+            try {
+                if (typeof firebase !== 'undefined' && firebase.auth) {
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp(firebaseConfig);
+                    }
+                    const auth = firebase.auth();
+                    const GoogleAuthProvider = firebase.auth.GoogleAuthProvider;
+                    
+                    // Convert Google Identity Services credential to Firebase Auth credential
+                    // The credential from Google Identity Services is already a JWT token
+                    const credential = GoogleAuthProvider.credential(response.credential);
+                    
+                    // Sign in to Firebase Auth (this will create or sign in the user)
+                    const userCredential = await auth.signInWithCredential(credential);
+                    const firebaseUser = userCredential.user;
+                    
+                    console.log('✅ Signed in to Firebase Auth:', firebaseUser.uid);
+                    console.log('✅ User email:', firebaseUser.email);
+                    console.log('✅ User display name:', firebaseUser.displayName);
+                    
+                    // Update user object with Firebase Auth user ID (use Firebase UID as primary identifier)
+                    this.user.sub = firebaseUser.uid;
+                    this.user.email = firebaseUser.email || this.user.email;
+                    this.user.name = firebaseUser.displayName || this.user.name;
+                    this.user.picture = firebaseUser.photoURL || this.user.picture;
+                    
+                    // Ensure user profile is updated in Firebase Auth
+                    if (payload.name && !firebaseUser.displayName) {
+                        await firebaseUser.updateProfile({
+                            displayName: payload.name,
+                            photoURL: payload.picture || firebaseUser.photoURL
+                        });
+                    }
+                    
+                    console.log('✅ User synced with Firebase Auth and will appear in Firebase Console');
+                } else {
+                    console.warn('⚠️ Firebase Auth not available, using Google ID only');
+                }
+            } catch (authError) {
+                console.error('⚠️ Firebase Auth sign-in failed:', authError);
+                if (authError.code === 'auth/credential-already-in-use') {
+                    console.warn('Credential already in use, user might already be signed in');
+                } else if (authError.code === 'auth/popup-closed-by-user') {
+                    console.warn('Popup was closed by user');
+                } else {
+                    console.error('Auth error code:', authError.code);
+                    console.error('Auth error message:', authError.message);
+                }
+                // Continue anyway - we still have the Google credential and will save to Firestore
+            }
+            
+            // Save user to Firestore and localStorage
+            await this.saveUser().catch(err => {
                 console.warn('Warning: Could not save user to database:', err);
             });
             
@@ -941,14 +1006,46 @@ class TaskManager {
     }
 
     async loadUser() {
-        // Check Firebase Auth state first (for email/password users)
+        // Check Firebase Auth state first (for email/password and Google users)
         if (typeof firebase !== 'undefined' && firebase.auth) {
             try {
                 if (!firebase.apps.length) {
                     firebase.initializeApp(firebaseConfig);
                 }
                 const auth = firebase.auth();
-                const firebaseUser = auth.currentUser;
+                
+                // Wait for auth state to be ready (handles async initialization)
+                let firebaseUser = auth.currentUser;
+                if (!firebaseUser) {
+                    // Wait a bit for auth state to initialize
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    firebaseUser = auth.currentUser;
+                }
+                
+                // Also set up auth state listener to catch changes
+                auth.onAuthStateChanged((user) => {
+                    if (user && !this.user) {
+                        // User signed in via Firebase Auth
+                        const displayName = user.displayName || user.email.split('@')[0];
+                        this.user = {
+                            name: displayName,
+                            email: user.email,
+                            picture: user.photoURL || '',
+                            sub: user.uid,
+                            customName: null,
+                            customPicture: null
+                        };
+                        localStorage.setItem('dailyRushUser', JSON.stringify(this.user));
+                        // Reload tasks and update UI
+                        this.loadTasks();
+                        this.loadPoints();
+                        this.renderAllPages();
+                        this.updateAllStats();
+                        this.updatePointsDisplay();
+                        this.enableTaskFunctionality();
+                        this.updateUserDisplay();
+                    }
+                });
                 
                 if (firebaseUser) {
                     // User is logged in via Firebase Auth
@@ -1378,6 +1475,11 @@ class TaskManager {
             view.classList.remove('active');
         });
         document.getElementById(`page${page.charAt(0).toUpperCase() + page.slice(1)}`).classList.add('active');
+        
+        // Initialize Pomodoro if navigating to pomodoro page
+        if (page === 'pomodoro') {
+            this.initializePomodoro();
+        }
     }
 
     addTask() {
@@ -1409,15 +1511,19 @@ class TaskManager {
             dueDate: taskDate || null
         };
 
-        this.tasks.unshift(task);
-        taskInput.value = '';
-        if (taskDateInput) taskDateInput.value = '';
-        taskInput.focus();
-        this.saveTasks().then(() => {
-            this.renderAllPages();
-            this.updateAllStats();
-        });
-    }
+            this.tasks.unshift(task);
+            taskInput.value = '';
+            if (taskDateInput) taskDateInput.value = '';
+            taskInput.focus();
+            this.saveTasks().then(() => {
+                this.renderAllPages();
+                this.updateAllStats();
+                // Update Pomodoro task selector if on Pomodoro page
+                if (this.currentPage === 'pomodoro') {
+                    this.populateTaskSelector();
+                }
+            });
+        }
 
     toggleTask(id) {
         // Check if user is logged in
@@ -1455,6 +1561,10 @@ class TaskManager {
             this.saveTasks().then(() => {
                 this.renderAllPages();
                 this.updateAllStats();
+                // Update Pomodoro task selector if on Pomodoro page
+                if (this.currentPage === 'pomodoro') {
+                    this.populateTaskSelector();
+                }
             });
             this.updateMotivationMessages();
             this.updatePointsDisplay();
@@ -1480,6 +1590,10 @@ class TaskManager {
             this.renderAllPages();
             this.updateAllStats();
             this.updatePointsDisplay();
+            // Update Pomodoro task selector if on Pomodoro page
+            if (this.currentPage === 'pomodoro') {
+                this.populateTaskSelector();
+            }
         });
     }
 
@@ -1987,6 +2101,390 @@ class TaskManager {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Pomodoro Timer Functions
+    initializePomodoro() {
+        this.loadPomodoroStats();
+        this.updatePomodoroDisplay();
+        this.populateTaskSelector();
+        
+        // Add event listeners
+        const pomodoroStart = document.getElementById('pomodoroStart');
+        const pomodoroPause = document.getElementById('pomodoroPause');
+        const pomodoroReset = document.getElementById('pomodoroReset');
+        const pomodoroWork = document.getElementById('pomodoroWork');
+        const pomodoroShortBreak = document.getElementById('pomodoroShortBreak');
+        const pomodoroLongBreak = document.getElementById('pomodoroLongBreak');
+        const pomodoroTaskSelect = document.getElementById('pomodoroTaskSelect');
+        
+        if (pomodoroStart) {
+            pomodoroStart.addEventListener('click', () => this.startPomodoro());
+        }
+        if (pomodoroPause) {
+            pomodoroPause.addEventListener('click', () => this.pausePomodoro());
+        }
+        if (pomodoroReset) {
+            pomodoroReset.addEventListener('click', () => this.resetPomodoro());
+        }
+        if (pomodoroWork) {
+            pomodoroWork.addEventListener('click', () => this.setPomodoroMode('work'));
+        }
+        if (pomodoroShortBreak) {
+            pomodoroShortBreak.addEventListener('click', () => this.setPomodoroMode('shortBreak'));
+        }
+        if (pomodoroLongBreak) {
+            pomodoroLongBreak.addEventListener('click', () => this.setPomodoroMode('longBreak'));
+        }
+        if (pomodoroTaskSelect) {
+            pomodoroTaskSelect.addEventListener('change', (e) => this.selectPomodoroTask(e.target.value));
+        }
+    }
+
+    setPomodoroMode(mode) {
+        if (this.pomodoro.isRunning) {
+            if (!confirm('Timer is running. Do you want to switch mode and reset the timer?')) {
+                return;
+            }
+            this.resetPomodoro();
+        }
+        
+        this.pomodoro.mode = mode;
+        
+        // Update mode button states
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+        const modeIdMap = {
+            'work': 'pomodoroWork',
+            'shortBreak': 'pomodoroShortBreak',
+            'longBreak': 'pomodoroLongBreak'
+        };
+        const btnId = modeIdMap[mode];
+        if (btnId) {
+            const btn = document.getElementById(btnId);
+            if (btn) btn.classList.add('active');
+        }
+        
+        // Set time based on mode
+        const times = {
+            work: 25 * 60,
+            shortBreak: 5 * 60,
+            longBreak: 15 * 60
+        };
+        
+        this.pomodoro.timeLeft = times[mode];
+        this.pomodoro.totalTime = times[mode];
+        
+        // Update circle data attribute for color
+        const circle = document.querySelector('.pomodoro-circle');
+        if (circle) {
+            circle.setAttribute('data-mode', mode);
+        }
+        
+        this.updatePomodoroDisplay();
+    }
+
+    startPomodoro() {
+        if (this.pomodoro.isRunning) return;
+        
+        if (this.pomodoro.isPaused) {
+            // Resume from pause
+            this.pomodoro.isPaused = false;
+        } else {
+            // Start new session
+            this.pomodoro.isRunning = true;
+        }
+        
+        // Update button visibility
+        document.getElementById('pomodoroStart').style.display = 'none';
+        document.getElementById('pomodoroPause').style.display = 'flex';
+        
+        // Start countdown
+        this.pomodoro.timerInterval = setInterval(() => {
+            this.pomodoro.timeLeft--;
+            this.updatePomodoroDisplay();
+            
+            if (this.pomodoro.timeLeft <= 0) {
+                this.completePomodoro();
+            }
+        }, 1000);
+        
+        this.updatePomodoroStatus('Focus Time!');
+    }
+
+    pausePomodoro() {
+        if (!this.pomodoro.isRunning) return;
+        
+        clearInterval(this.pomodoro.timerInterval);
+        this.pomodoro.isRunning = false;
+        this.pomodoro.isPaused = true;
+        
+        // Update button visibility
+        document.getElementById('pomodoroStart').style.display = 'flex';
+        document.getElementById('pomodoroPause').style.display = 'none';
+        
+        this.updatePomodoroStatus('Paused');
+    }
+
+    resetPomodoro() {
+        clearInterval(this.pomodoro.timerInterval);
+        this.pomodoro.isRunning = false;
+        this.pomodoro.isPaused = false;
+        
+        // Reset to initial time for current mode
+        const times = {
+            work: 25 * 60,
+            shortBreak: 5 * 60,
+            longBreak: 15 * 60
+        };
+        this.pomodoro.timeLeft = times[this.pomodoro.mode];
+        this.pomodoro.totalTime = times[this.pomodoro.mode];
+        
+        // Update button visibility
+        document.getElementById('pomodoroStart').style.display = 'flex';
+        document.getElementById('pomodoroPause').style.display = 'none';
+        
+        this.updatePomodoroDisplay();
+        this.updatePomodoroStatus('Ready to Focus');
+    }
+
+    completePomodoro() {
+        clearInterval(this.pomodoro.timerInterval);
+        this.pomodoro.isRunning = false;
+        this.pomodoro.isPaused = false;
+        
+        // Play completion sound
+        this.playPomodoroCompleteSound();
+        
+        // Update stats if it was a work session
+        if (this.pomodoro.mode === 'work') {
+            this.pomodoro.workCount++;
+            this.pomodoro.completedToday++;
+            const minutes = this.pomodoro.totalTime / 60;
+            this.pomodoro.totalFocusTime += minutes;
+            this.savePomodoroStats();
+            this.updatePomodoroStats();
+            
+            // Award bonus points for completing a full focus session
+            const bonusPoints = 10;
+            this.totalPoints += bonusPoints;
+            this.savePoints();
+            this.updatePointsDisplay();
+            
+            // Show bonus points notification
+            this.showBonusPointsNotification(bonusPoints);
+            
+            // Show notification
+            this.showPomodoroNotification();
+        }
+        
+        // Auto-advance to next mode
+        if (this.pomodoro.mode === 'work') {
+            // After work, take break
+            if (this.pomodoro.workCount % 4 === 0) {
+                this.setPomodoroMode('longBreak');
+            } else {
+                this.setPomodoroMode('shortBreak');
+            }
+        } else {
+            // After break, go back to work
+            this.setPomodoroMode('work');
+        }
+        
+        // Update button visibility
+        document.getElementById('pomodoroStart').style.display = 'flex';
+        document.getElementById('pomodoroPause').style.display = 'none';
+        
+        this.updatePomodoroStatus('Session Complete!');
+        
+        // Show alert
+        setTimeout(() => {
+            alert(this.pomodoro.mode === 'work' 
+                ? '🎉 Pomodoro Complete! Take a break!' 
+                : 'Break Complete! Ready for another focus session?');
+        }, 100);
+    }
+
+    updatePomodoroDisplay() {
+        const minutes = Math.floor(this.pomodoro.timeLeft / 60);
+        const seconds = this.pomodoro.timeLeft % 60;
+        
+        const minutesEl = document.getElementById('pomodoroMinutes');
+        const secondsEl = document.getElementById('pomodoroSeconds');
+        const progressCircle = document.querySelector('.pomodoro-progress');
+        
+        if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
+        if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+        
+        // Update progress circle
+        if (progressCircle) {
+            const circumference = 2 * Math.PI * 54; // radius = 54
+            const progress = (this.pomodoro.totalTime - this.pomodoro.timeLeft) / this.pomodoro.totalTime;
+            const offset = circumference - (progress * circumference);
+            progressCircle.style.strokeDashoffset = offset;
+        }
+    }
+
+    updatePomodoroStatus(text) {
+        const statusEl = document.getElementById('pomodoroStatus');
+        if (statusEl) {
+            statusEl.textContent = text;
+        }
+    }
+
+    selectPomodoroTask(taskId) {
+        if (!taskId) {
+            document.getElementById('pomodoroCurrentTask').style.display = 'none';
+            return;
+        }
+        
+        const task = this.tasks.find(t => t.id === parseInt(taskId));
+        if (task) {
+            document.getElementById('pomodoroTaskName').textContent = task.text;
+            document.getElementById('pomodoroCurrentTask').style.display = 'block';
+        }
+    }
+
+    populateTaskSelector() {
+        const selector = document.getElementById('pomodoroTaskSelect');
+        if (!selector) return;
+        
+        // Clear existing options except the first one
+        selector.innerHTML = '<option value="">No task selected</option>';
+        
+        // Add active tasks
+        const activeTasks = this.tasks.filter(t => !t.completed);
+        activeTasks.forEach(task => {
+            const option = document.createElement('option');
+            option.value = task.id;
+            option.textContent = task.text.length > 50 ? task.text.substring(0, 50) + '...' : task.text;
+            selector.appendChild(option);
+        });
+    }
+
+    playPomodoroCompleteSound() {
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            let audioContext = this.audioContext;
+            
+            if (!audioContext) {
+                audioContext = new AudioContextClass();
+                this.audioContext = audioContext;
+            }
+            
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            // Play a pleasant completion chime
+            const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C-E-G-C chord
+            
+            frequencies.forEach((freq, index) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = freq;
+                oscillator.type = 'sine';
+                
+                const now = audioContext.currentTime;
+                const delay = index * 0.05;
+                const duration = 0.3;
+                
+                gainNode.gain.setValueAtTime(0, now + delay);
+                gainNode.gain.linearRampToValueAtTime(0.3, now + delay + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + delay + duration);
+                
+                oscillator.start(now + delay);
+                oscillator.stop(now + delay + duration);
+            });
+        } catch (error) {
+            console.log('Audio playback unavailable');
+        }
+    }
+
+    showPomodoroNotification() {
+        const notification = document.createElement('div');
+        notification.className = 'points-notification';
+        notification.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>Pomodoro Complete! 🍅</span>
+        `;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    showBonusPointsNotification(points) {
+        // Play congratulatory sound
+        this.playCongratSound();
+        
+        const notification = document.createElement('div');
+        notification.className = 'points-notification bonus';
+        notification.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>Focus Bonus! +${points} Points! 🎯</span>
+        `;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.remove();
+        }, 3500);
+    }
+
+    updatePomodoroStats() {
+        const completedEl = document.getElementById('pomodoroCompleted');
+        const totalEl = document.getElementById('pomodoroTotal');
+        
+        if (completedEl) completedEl.textContent = this.pomodoro.completedToday;
+        if (totalEl) totalEl.textContent = Math.floor(this.pomodoro.totalFocusTime);
+    }
+
+    loadPomodoroStats() {
+        const today = new Date().toDateString();
+        const storageKey = `pomodoroStats_${today}`;
+        const saved = localStorage.getItem(storageKey);
+        
+        if (saved) {
+            try {
+                const stats = JSON.parse(saved);
+                this.pomodoro.completedToday = stats.completedToday || 0;
+                this.pomodoro.totalFocusTime = stats.totalFocusTime || 0;
+            } catch (e) {
+                console.error('Error loading Pomodoro stats:', e);
+            }
+        } else {
+            // Check if it's a new day, reset if needed
+            const lastDate = localStorage.getItem('pomodoroLastDate');
+            if (lastDate !== today) {
+                this.pomodoro.completedToday = 0;
+                this.pomodoro.totalFocusTime = 0;
+                localStorage.setItem('pomodoroLastDate', today);
+            }
+        }
+        
+        this.updatePomodoroStats();
+    }
+
+    savePomodoroStats() {
+        const today = new Date().toDateString();
+        const storageKey = `pomodoroStats_${today}`;
+        const stats = {
+            completedToday: this.pomodoro.completedToday,
+            totalFocusTime: this.pomodoro.totalFocusTime,
+            date: today
+        };
+        localStorage.setItem(storageKey, JSON.stringify(stats));
+        localStorage.setItem('pomodoroLastDate', today);
     }
 }
 

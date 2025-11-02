@@ -211,6 +211,13 @@
                     </svg>
                     <span>Completed</span>
                 </button>
+                <button class="nav-btn" data-page="pomodoro" id="navPomodoro">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Focus</span>
+                </button>
             </div>
             <div class="icon-bar-right">
                 <div class="user-profile" id="userProfile" style="display: none;">
@@ -528,6 +535,131 @@
                     <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
                 <p>No completed tasks yet. Complete a task to see it here!</p>
+            </div>
+        </div>
+
+        <!-- Pomodoro Timer Page -->
+        <div class="page-view" id="pagePomodoro" data-page="pomodoro">
+            <div class="page-header">
+                <h2>Pomodoro Focus Timer</h2>
+                <p class="page-description">Focus on your tasks with the Pomodoro Technique</p>
+            </div>
+            
+            <div class="pomodoro-container">
+                <div class="pomodoro-card">
+                    <div class="pomodoro-display">
+                        <div class="pomodoro-circle">
+                            <svg class="pomodoro-svg" viewBox="0 0 120 120">
+                                <circle class="pomodoro-track" cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" stroke-width="8"></circle>
+                                <circle class="pomodoro-progress" cx="60" cy="60" r="54" fill="none" stroke="#3b82f6" stroke-width="8" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="339.292" stroke-dashoffset="0"></circle>
+                            </svg>
+                            <div class="pomodoro-time">
+                                <span id="pomodoroMinutes">25</span>
+                                <span class="time-separator">:</span>
+                                <span id="pomodoroSeconds">00</span>
+                            </div>
+                            <div class="pomodoro-status" id="pomodoroStatus">Ready to Focus</div>
+                        </div>
+                    </div>
+                    
+                    <div class="pomodoro-controls">
+                        <div class="pomodoro-mode-selector">
+                            <button class="mode-btn active" data-mode="work" id="pomodoroWork">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                </svg>
+                                Work (25 min)
+                            </button>
+                            <button class="mode-btn" data-mode="shortBreak" id="pomodoroShortBreak">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                Short Break (5 min)
+                            </button>
+                            <button class="mode-btn" data-mode="longBreak" id="pomodoroLongBreak">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                Long Break (15 min)
+                            </button>
+                        </div>
+                        
+                        <div class="pomodoro-action-buttons">
+                            <button class="pomodoro-btn btn-start" id="pomodoroStart">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                                Start
+                            </button>
+                            <button class="pomodoro-btn btn-pause" id="pomodoroPause" style="display: none;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="6" y="4" width="4" height="16"></rect>
+                                    <rect x="14" y="4" width="4" height="16"></rect>
+                                </svg>
+                                Pause
+                            </button>
+                            <button class="pomodoro-btn btn-reset" id="pomodoroReset">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="1 4 1 10 7 10"></polyline>
+                                    <path d="M3.51 15a11 11 0 1 0 2.13-9.36L1 10"></path>
+                                </svg>
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="pomodoro-task-selector">
+                        <label for="pomodoroTaskSelect" class="pomodoro-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                            Select Task to Focus On (Optional)
+                        </label>
+                        <select id="pomodoroTaskSelect" class="pomodoro-task-select">
+                            <option value="">No task selected</option>
+                        </select>
+                        <div id="pomodoroCurrentTask" class="pomodoro-current-task" style="display: none;">
+                            <div class="current-task-info">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                <span id="pomodoroTaskName">No task selected</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="pomodoro-stats">
+                        <div class="pomodoro-stat-card">
+                            <div class="stat-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="pomodoroCompleted">0</span>
+                                <span class="stat-label">Pomodoros Today</span>
+                            </div>
+                        </div>
+                        <div class="pomodoro-stat-card">
+                            <div class="stat-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="pomodoroTotal">0</span>
+                                <span class="stat-label">Total Focus Time (min)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
