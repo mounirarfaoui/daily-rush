@@ -461,6 +461,9 @@ class TaskManager {
             console.log('👋 Showing welcome notification...');
             this.showWelcomeNotification();
             
+            // Show welcome video for new users
+            this.checkAndShowWelcomeVideo();
+            
             console.log('✅ Login complete!');
             
         } catch (error) {
@@ -720,6 +723,9 @@ class TaskManager {
             
             // Show welcome message
             this.showWelcomeNotification();
+            
+            // Show welcome video for new users
+            this.checkAndShowWelcomeVideo();
             
             console.log('✅ Email authentication successful');
             
@@ -1044,6 +1050,8 @@ class TaskManager {
                         this.updatePointsDisplay();
                         this.enableTaskFunctionality();
                         this.updateUserDisplay();
+                        // Show welcome video for new users
+                        this.checkAndShowWelcomeVideo();
                     }
                 });
                 
@@ -1459,6 +1467,18 @@ class TaskManager {
                 this.updateProfilePreview();
             });
         }
+
+        // Initialize welcome video listeners (if modal exists)
+        this.initializeWelcomeVideoListeners();
+        
+        // For testing: Add a keyboard shortcut to manually show the video (Ctrl+Shift+V)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+                e.preventDefault();
+                console.log('🔧 Manual trigger: Showing welcome video');
+                this.showWelcomeVideo();
+            }
+        });
     }
 
     navigateToPage(page) {
@@ -2485,6 +2505,127 @@ class TaskManager {
         };
         localStorage.setItem(storageKey, JSON.stringify(stats));
         localStorage.setItem('pomodoroLastDate', today);
+    }
+
+    // Welcome Video Functions
+    checkAndShowWelcomeVideo() {
+        // Only show if user is logged in
+        if (!this.user) {
+            console.log('🚫 No user logged in, skipping welcome video');
+            return;
+        }
+        
+        // Check if user has opted to not show the video again
+        const dontShowVideo = localStorage.getItem('dailyRushDontShowVideo');
+        if (dontShowVideo === 'true') {
+            console.log('🚫 User opted to not show video again');
+            return;
+        }
+        
+        // Check if user has already seen the video
+        const hasSeenVideo = localStorage.getItem('dailyRushHasSeenVideo');
+        if (hasSeenVideo === 'true') {
+            console.log('🚫 User has already seen the video');
+            return;
+        }
+        
+        console.log('✅ Showing welcome video for new user');
+        // Show the video modal after a short delay to ensure UI is ready
+        setTimeout(() => {
+            this.showWelcomeVideo();
+        }, 1500);
+    }
+
+    showWelcomeVideo() {
+        console.log('🎬 Attempting to show welcome video...');
+        const videoModal = document.getElementById('welcomeVideoModal');
+        if (!videoModal) {
+            console.error('❌ Welcome video modal not found in DOM');
+            return;
+        }
+        
+        console.log('✅ Modal found, loading video...');
+        
+        // Load video src only when modal is shown
+        const videoIframe = document.getElementById('welcomeVideo');
+        if (videoIframe) {
+            const videoSrc = videoIframe.getAttribute('data-src');
+            if (videoSrc) {
+                console.log('📹 Setting video src:', videoSrc);
+                videoIframe.src = videoSrc;
+            } else {
+                console.warn('⚠️ No data-src attribute found on video iframe');
+            }
+        } else {
+            console.warn('⚠️ Video iframe not found');
+        }
+        
+        videoModal.classList.remove('hidden');
+        console.log('✅ Modal should now be visible');
+        // Add event listeners if not already added
+        this.initializeWelcomeVideoListeners();
+    }
+
+    hideWelcomeVideo() {
+        const videoModal = document.getElementById('welcomeVideoModal');
+        if (videoModal) {
+            videoModal.classList.add('hidden');
+            // Stop the YouTube video by clearing the src
+            const videoIframe = document.getElementById('welcomeVideo');
+            if (videoIframe) {
+                // Clear src immediately to stop playback and sound
+                videoIframe.src = '';
+            }
+        }
+    }
+
+    initializeWelcomeVideoListeners() {
+        const closeBtn = document.getElementById('closeVideoModalBtn');
+        const skipBtn = document.getElementById('skipVideoBtn');
+        const dontShowCheckbox = document.getElementById('dontShowAgain');
+        
+        if (closeBtn && !closeBtn.hasAttribute('data-listener-added')) {
+            closeBtn.setAttribute('data-listener-added', 'true');
+            closeBtn.addEventListener('click', () => {
+                const dontShow = dontShowCheckbox && dontShowCheckbox.checked;
+                if (dontShow) {
+                    localStorage.setItem('dailyRushDontShowVideo', 'true');
+                } else {
+                    localStorage.setItem('dailyRushHasSeenVideo', 'true');
+                }
+                this.hideWelcomeVideo();
+            });
+        }
+        
+        if (skipBtn && !skipBtn.hasAttribute('data-listener-added')) {
+            skipBtn.setAttribute('data-listener-added', 'true');
+            skipBtn.addEventListener('click', () => {
+                const dontShow = dontShowCheckbox && dontShowCheckbox.checked;
+                if (dontShow) {
+                    localStorage.setItem('dailyRushDontShowVideo', 'true');
+                } else {
+                    localStorage.setItem('dailyRushHasSeenVideo', 'true');
+                }
+                this.hideWelcomeVideo();
+            });
+        }
+        
+        // Close on background click
+        const videoModal = document.getElementById('welcomeVideoModal');
+        if (videoModal && !videoModal.hasAttribute('data-listener-added')) {
+            videoModal.setAttribute('data-listener-added', 'true');
+            videoModal.addEventListener('click', (e) => {
+                if (e.target === videoModal) {
+                    const dontShow = dontShowCheckbox && dontShowCheckbox.checked;
+                    if (dontShow) {
+                        localStorage.setItem('dailyRushDontShowVideo', 'true');
+                    } else {
+                        localStorage.setItem('dailyRushHasSeenVideo', 'true');
+                    }
+                    this.hideWelcomeVideo();
+                }
+            });
+        }
     }
 }
 
